@@ -1,0 +1,21 @@
+PUT 127.0.0.1:9111/counter/ronny/inc
+Content-Type: application/json
+
+{
+  "ns": "ea",
+  "help": "wtf",
+  "labels": {
+    "foo": "bar",
+    "baz": "baz"
+  }
+}
+
+###
+
+GET 127.0.0.1:9112
+
+###
+
+DELETE 127.0.0.1:9111/prune
+
+###
