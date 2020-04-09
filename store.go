@@ -1,54 +1,32 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/prometheus/client_golang/prometheus"
-	"io/ioutil"
-	"net/http"
+	"sort"
+	"strings"
 )
 
-type CounterStore map[string]prometheus.Counter
+type CounterStore map[string]*prometheus.CounterVec
 
 var Store CounterStore
 
-func createNewCounterOpts(name string, request *http.Request) (counter prometheus.CounterOpts, success bool) {
-
-	b, err := ioutil.ReadAll(request.Body)
-	if err != nil || len(b) == 0 {
-		nc := createSimpleCounter(name)
-		return nc, true
-	}
-
-	nc, ok := createCounterOptsFromRequest(b)
-	if !ok {
-		return nc, ok
-	}
-	nc.Name = name
-	return nc, true
+type ConstLabel struct {
+	Name []string
+	Value []string
 }
 
-func createCounterOptsFromRequest(b []byte) (counter prometheus.CounterOpts, success bool) {
-	var req struct {
-		Namespace string            `json:"ns"`
-		Help      string            `json:"help"`
-		Labels    map[string]string `json:"labels"`
-	}
+func createLabels(fromRequest string) ConstLabel {
+	var l ConstLabel
 
-	err := json.Unmarshal(b, &req)
-	if err != nil {
-		return prometheus.CounterOpts{}, false
-	}
+	labels := strings.Split(fromRequest, ",")
+	sort.Strings(labels)
 
-	opts := prometheus.CounterOpts{
-		Namespace:   req.Namespace,
-		Help:        req.Help,
-		ConstLabels: req.Labels,
+	for _, value := range labels {
+		parts := strings.Split(value, ":")
+		if len(parts) == 2 {
+			l.Name = append(l.Name, parts[0])
+			l.Value = append(l.Value, parts[1])
+		}
 	}
-	return opts, true
-}
-
-func createSimpleCounter(name string) prometheus.CounterOpts {
-	return prometheus.CounterOpts{
-		Name: name,
-	}
+	return l
 }

@@ -11,8 +11,15 @@ Content-Type: application/json
 }
 
 ###
+PUT 127.0.0.1:9111/counter/inc/ea/ronny
 
-GET 127.0.0.1:9112
+Content-Type: application/json
+
+
+
+###
+
+GET 127.0.0.1:9112/
 
 ###
 

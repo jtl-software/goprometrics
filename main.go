@@ -2,12 +2,13 @@ package main
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
 	"net/http"
+	"strconv"
 )
-
 
 func main() {
 	Store = CounterStore{}
@@ -21,49 +22,41 @@ func main() {
 
 	r := mux.NewRouter()
 	log.Infoln("Start Server on :9111")
-	r.HandleFunc("/counter/{name}/inc", incCounter).Methods("PUT")
-//	r.HandleFunc("/counter/{name}/inc/{labels}").Methods("PUT")
+	r.HandleFunc("/counter/inc/{ns}/{name}/{labels}", incLabeledCounter).Methods("PUT")
 
-	// delete does not work -
-	r.HandleFunc("/prune", pruneCounter).Methods("DELETE")
 	_ = http.ListenAndServe(":9111", r)
 }
 
-func incCounterVec(writer http.ResponseWriter, request *http.Request) {
-
-}
-
-func pruneCounter(writer http.ResponseWriter, _ *http.Request) {
-	log.Infoln("All counters pruned")
-	for k := range Store {
-		delete(Store, k)
-	}
-	writer.WriteHeader(http.StatusNoContent)
-}
-
-func incCounter(writer http.ResponseWriter, request *http.Request) {
-
+func incLabeledCounter(writer http.ResponseWriter, request *http.Request) {
 	v := mux.Vars(request)
 	name := v["name"]
+	ns := v["ns"]
+	label := createLabels(v["labels"])
+	stepWidth := parseStepWidth(request)
 
 	status := http.StatusOK
 	if _, ok := Store[name]; !ok {
-		log.Infof("New counter %s registered", name)
-
-		opts, ok := createNewCounterOpts(name, request)
-		if !ok {
-			writer.WriteHeader(http.StatusBadRequest)
-			return
-		}
+		log.Infof("New counter %s_%s registered", ns, name)
 
 		status = http.StatusCreated
-		Store[name] = promauto.NewCounter(opts)
-
-		// we have to go with counterVec
-		// promauto.NewCounterVec()
+		Store[name] = promauto.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: ns,
+				Name:      name,
+			},
+			label.Name,
+		)
 	}
 
-	Store[name].Inc()
+	Store[name].WithLabelValues(label.Value...).Add(stepWidth)
 	writer.WriteHeader(status)
+}
+
+func parseStepWidth(request *http.Request) float64 {
+	inc, _ := strconv.ParseFloat(request.URL.Query().Get("add"), 64)
+	if inc <= 0 {
+		inc = 1
+	}
+	return inc
 }
 
