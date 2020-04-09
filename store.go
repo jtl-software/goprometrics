@@ -1,54 +1,44 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/prometheus/client_golang/prometheus"
-	"io/ioutil"
-	"net/http"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/common/log"
+	"strings"
 )
 
-type CounterStore map[string]prometheus.Counter
+type CounterStore map[string]*prometheus.CounterVec
 
-var Store CounterStore
+func (s *CounterStore) addCounter(ns string, name string, label ConstLabel) bool {
+	newCounterCreated := false
 
-func createNewCounterOpts(name string, request *http.Request) (counter prometheus.CounterOpts, success bool) {
+	key := buildKey(ns, name, label)
+	if _, ok := (*s)[key]; !ok {
+		log.Infof("New counter %s_%s registered", ns, name)
 
-	b, err := ioutil.ReadAll(request.Body)
-	if err != nil || len(b) == 0 {
-		nc := createSimpleCounter(name)
-		return nc, true
+		newCounterCreated = true
+		(*s)[key] = promauto.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: ns,
+				Name:      name,
+			},
+			label.Name,
+		)
 	}
-
-	nc, ok := createCounterOptsFromRequest(b)
-	if !ok {
-		return nc, ok
-	}
-	nc.Name = name
-	return nc, true
+	return newCounterCreated
 }
 
-func createCounterOptsFromRequest(b []byte) (counter prometheus.CounterOpts, success bool) {
-	var req struct {
-		Namespace string            `json:"ns"`
-		Help      string            `json:"help"`
-		Labels    map[string]string `json:"labels"`
-	}
+// a previously registered descriptor with the same fully-qualified name as Desc{fqName: "ea_ronny", help: "", constLabels: {}, variableLabels: [market seller]} has different label names or a different help string
+// crash wenn change tag count
+// to do catch error
 
-	err := json.Unmarshal(b, &req)
-	if err != nil {
-		return prometheus.CounterOpts{}, false
+func (s *CounterStore) inc(ns string, name string, label ConstLabel, step float64) {
+	key := buildKey(ns, name, label)
+	if _, ok := (*s)[key]; ok {
+		(*s)[key].WithLabelValues(label.Value...).Add(step)
 	}
-
-	opts := prometheus.CounterOpts{
-		Namespace:   req.Namespace,
-		Help:        req.Help,
-		ConstLabels: req.Labels,
-	}
-	return opts, true
 }
 
-func createSimpleCounter(name string) prometheus.CounterOpts {
-	return prometheus.CounterOpts{
-		Name: name,
-	}
+func buildKey(ns string, name string, label ConstLabel) string {
+	return ns + "_" + name + "__" + strings.Join(label.Name, "_")
 }
