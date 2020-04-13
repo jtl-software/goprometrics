@@ -6,7 +6,7 @@ type ConstLabel struct {
 }
 
 type Counter interface {
-	inc(ns string, name string, label ConstLabel, step float64) bool
+	inc(ns string, name string, label ConstLabel, step float64) (bool, error)
 }
 
 type PrometheusMetrics struct {
@@ -26,8 +26,10 @@ func main() {
 	api.Serve()
 }
 
-func (pm PrometheusMetrics) inc(ns string, name string, label ConstLabel, step float64) bool {
-	created := pm.counterStore.addCounter(ns, name, label)
-	pm.counterStore.inc(ns, name, label, step)
-	return created
+func (pm PrometheusMetrics) inc(ns string, name string, label ConstLabel, step float64) (bool, error) {
+	created, err := pm.counterStore.addCounter(ns, name, label)
+	if err == nil {
+		pm.counterStore.inc(ns, name, label, step)
+	}
+	return created, err
 }

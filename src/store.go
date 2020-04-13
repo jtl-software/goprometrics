@@ -9,13 +9,18 @@ import (
 
 type CounterStore map[string]*prometheus.CounterVec
 
-func (s *CounterStore) addCounter(ns string, name string, label ConstLabel) bool {
-	newCounterCreated := false
+func (s *CounterStore) addCounter(ns string, name string, label ConstLabel) (newCounterCreated bool, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error(r)
+			err = r.(error)
+		}
+	}()
+
+	newCounterCreated = false
 
 	key := buildKey(ns, name, label)
 	if _, ok := (*s)[key]; !ok {
-		log.Infof("New counter %s_%s registered", ns, name)
-
 		newCounterCreated = true
 		(*s)[key] = promauto.NewCounterVec(
 			prometheus.CounterOpts{
@@ -24,13 +29,10 @@ func (s *CounterStore) addCounter(ns string, name string, label ConstLabel) bool
 			},
 			label.Name,
 		)
+		log.Infof("New counter %s_%s with %#v registered", ns, name, label.Name)
 	}
-	return newCounterCreated
+	return
 }
-
-// a previously registered descriptor with the same fully-qualified name as Desc{fqName: "ea_ronny", help: "", constLabels: {}, variableLabels: [market seller]} has different label names or a different help string
-// crash wenn change tag count
-// to do catch error
 
 func (s *CounterStore) inc(ns string, name string, label ConstLabel, step float64) {
 	key := buildKey(ns, name, label)

@@ -1,0 +1,15 @@
+PUT 127.0.0.1:9111/count/ea/ronny/seller:123,market:foo,d:s
+
+###
+
+PUT 127.0.0.1:9111/count/ea/ronny/seller:123,market:foo
+
+###
+
+GET 127.0.0.1:9112/metrics
+
+###
+
+DELETE 127.0.0.1:9111/prune
+
+###

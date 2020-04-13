@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
@@ -22,6 +23,18 @@ func (a Adapter) CounterHandleFunc(h func(writer http.ResponseWriter, request *h
 	a.r.HandleFunc("/count/{ns}/{name}/{labels}", h).Methods("PUT")
 }
 
+func (a Adapter) Serve() {
+	log.Infof("Start Server on :9111")
+	_ = http.ListenAndServe(":9111", a.r)
+}
+
+func (a Adapter) ServeMetrics() {
+	a.r.Path("/metrics").Handler(promhttp.Handler())
+
+	log.Infoln("metrics are getting exposed on :9112")
+	_ = http.ListenAndServe(":9112", a.r)
+}
+
 func (a Adapter) MakeCounterHandler(counter Counter) func(writer http.ResponseWriter, request *http.Request) {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		v := mux.Vars(request)
@@ -30,24 +43,32 @@ func (a Adapter) MakeCounterHandler(counter Counter) func(writer http.ResponseWr
 		label := createLabels(v["labels"])
 		step := parseStepWidth(request)
 
-		httpStatus := http.StatusOK
-		created := counter.inc(ns, name, label, step)
-		if created == true {
-			httpStatus = http.StatusCreated
+		created, err := counter.inc(ns, name, label, step)
+		if err == nil {
+			handleResponse(created, writer)
+		} else {
+			handleBadRequestError(err, writer)
 		}
-		writer.WriteHeader(httpStatus)
 	}
 }
 
-func (a Adapter) Serve() {
-	log.Infof("Start Server on :9111")
-	_ = http.ListenAndServe(":9111", a.r)
+func handleResponse(created bool, writer http.ResponseWriter) {
+	if created == true {
+		writer.WriteHeader(http.StatusCreated)
+	} else {
+		writer.WriteHeader(http.StatusOK)
+	}
 }
 
-func (a Adapter) ServeMetrics() {
-	a.r.Path("/").Handler(promhttp.Handler())
-	log.Infoln("metrics are getting exposed on :9112")
-	_ = http.ListenAndServe(":9112", a.r)
+func handleBadRequestError(err error, writer http.ResponseWriter) {
+	b, _ := json.Marshal(struct {
+		Message string `json:"message"`
+	}{
+		Message: err.Error(),
+	})
+
+	writer.WriteHeader(http.StatusBadRequest)
+	_, _ = writer.Write(b)
 }
 
 func parseStepWidth(request *http.Request) float64 {
