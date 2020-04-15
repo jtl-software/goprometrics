@@ -10,7 +10,7 @@ import (
 
 type CounterStore map[string]*prometheus.CounterVec
 
-var lock sync.Mutex
+var counterMutex sync.Mutex
 
 func (s *CounterStore) addCounter(ns string, name string, label ConstLabel) (newCounterCreated bool, err error) {
 	defer func() {
@@ -24,7 +24,7 @@ func (s *CounterStore) addCounter(ns string, name string, label ConstLabel) (new
 
 	key := buildKey(ns, name, label)
 	if _, ok := (*s)[key]; !ok {
-		lock.Lock()
+		counterMutex.Lock()
 		if _, ok := (*s)[key]; !ok {
 			(*s)[key] = promauto.NewCounterVec(
 				prometheus.CounterOpts{
@@ -36,7 +36,7 @@ func (s *CounterStore) addCounter(ns string, name string, label ConstLabel) (new
 			newCounterCreated = true
 			log.Infof("New counter %s_%s with labels %v registered", ns, name, label.Name)
 		}
-		lock.Unlock()
+		counterMutex.Unlock()
 	}
 	return
 }
