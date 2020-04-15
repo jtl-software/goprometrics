@@ -1,8 +1,8 @@
-PUT 127.0.0.1:9111/count/ea/ronny/seller:123,market:foo,d:s
+PUT 127.0.0.1:9111/count/ea/ronny
 
 ###
 
-PUT 127.0.0.1:9111/count/ea/ronny/seller:123,market:foo
+PUT 127.0.0.1:9111/count/ea/ronny2/seller:123,market:foo
 
 ###
 

@@ -21,6 +21,7 @@ func NewAdapter() Adapter {
 
 func (a Adapter) CounterHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
 	a.r.HandleFunc("/count/{ns}/{name}/{labels}", h).Methods("PUT")
+	a.r.HandleFunc("/count/{ns}/{name}", h).Methods("PUT")
 }
 
 func (a Adapter) Serve() {
