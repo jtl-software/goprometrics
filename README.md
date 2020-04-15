@@ -1,15 +1,45 @@
-# JTLPROM
+<div align="center">
+  <img src="https://cdn.eazyauction.de/eastatic/scx_logo.png">
+</div>
+
+# goprometrics
+
+The use case for Goprometheus is to provide an aggregator and metrics cache for ephemeral processes. Such a scripting 
+languages like PHP. The goprometheus simple, lightweight and fast. It provides easy to use API over HTTP.
+
+## Features
+
+* Support for counter (using namespace and label)
+* Provide `/metrics` endpoint for scrape Metrics
+
+## Install - Build it
+
+````
+go build
+````
+
+## Install - using docker
+
+````
+docker build --tag goprometrics:0.1 ./
+docker run -it -p 9111:9111 -p 9112:9112 -v $PWD/src:/go/src/jtlprom goprometrics:0.1
+````
+
+Docker container goprometrics will host the metric collector and running using `refresh`, which means every source change
+will trigger a automatic re-build. You may not is it this way in your production.
+
+## Install - using docker-compose
 
 ````
 docker-compose up -d
 ````
 
-This will start jtlprom listen in :9111 (api) and :9112 (for expose metrics). There is also a prometheus up and running
-on :9090
+Will start goprometrics listen in :9111 (api) and :9112 (for expose metrics). There is also a prometheus up and running on :9090.
+
+Need some logs? `docker-compose logs -f goprometrics`
+
+# Examples
 
 See example.http for Example requests
 
-Docker container jtlprom will host the metric collector and running with `refrsh`, which means every source change will
-trigger a automatic re-build. 
 
-See `docker-compose logs -f jtlprom` for logs

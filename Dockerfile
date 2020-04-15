@@ -6,7 +6,7 @@ RUN apk update && \
     apk upgrade && \
     apk add git
 
-COPY ./src /go/src/jtlprom
+COPY . /go/src/jtlprom
 WORKDIR  /go/src/jtlprom
 
 RUN go get ./

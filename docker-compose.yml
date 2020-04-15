@@ -2,15 +2,14 @@ version: "3"
 
 volumes:
   prometheus_data: {}
-  grafana_data: {}
 
 services:
 
-  jtlprom:
+  goprometrics:
     build: ./
     volumes:
-      - ./src:/go/src/jtlprom
-    working_dir: /go/src/jtlprom
+      - .:/go/src/goprometrics
+    working_dir: /go/src/goprometrics
     ports:
       - 9112:9112
       - 9111:9111

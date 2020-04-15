@@ -12,7 +12,7 @@ type CounterStore map[string]*prometheus.CounterVec
 
 var counterMutex sync.Mutex
 
-func (s *CounterStore) addCounter(ns string, name string, label ConstLabel) (newCounterCreated bool, err error) {
+func (s *CounterStore) addCounter(ns string, name string, label ConstLabel, help string) (newCounterCreated bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error(r)
@@ -30,11 +30,12 @@ func (s *CounterStore) addCounter(ns string, name string, label ConstLabel) (new
 				prometheus.CounterOpts{
 					Namespace: ns,
 					Name:      name,
+					Help:      help,
 				},
 				label.Name,
 			)
 			newCounterCreated = true
-			log.Infof("New counter %s_%s with labels %v registered", ns, name, label.Name)
+			log.Infof("A new counter %s_%s with labels %v registered", ns, name, label.Name)
 		}
 		counterMutex.Unlock()
 	}

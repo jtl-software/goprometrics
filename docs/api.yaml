@@ -1,0 +1,94 @@
+openapi: 3.0.1
+info:
+  title: Goprometric metrics cache API
+  version: 1.0.0
+servers:
+  - url: 'http://127.0.0.1:9111'
+paths:
+
+  /count/{ns}/{name}/:
+    put:
+      operationId: IncCounter
+      summary: Increment a counter
+      description: Increment a counter
+      parameters:
+        - in: path
+          required: true
+          description: Namespace
+          name: ns
+          example: my_namespace
+          schema:
+            type: string
+        - in: path
+          required: true
+          description: Counter name
+          example: my_counter
+          name: name
+          schema:
+            type: string
+        - in: query
+          required: false
+          description: Help Text
+          name: help
+          schema:
+            type: string
+        - in: query
+          required: false
+          description: Step width
+          name: step
+          schema:
+            type: float
+      responses:
+        '200':
+          description: Counter was incremented
+        '201':
+          description: Counter was created and incremented
+
+  /count/{ns}/{name}/{lables}:
+    put:
+      operationId: IncLabledCounter
+      summary: Increment a labeled counter
+      description: |
+        Increment a labeled counter. Lables must provides as key value list.
+        Example: beer = dark and wine = red need to send as beer=dark,wine=red
+      parameters:
+        - in: path
+          required: true
+          description: Namespace
+          name: ns
+          example: my_namespace
+          schema:
+            type: string
+        - in: path
+          required: true
+          description: Counter name
+          name: name
+          example: my_counter
+          schema:
+            type: string
+        - in: path
+          required: false
+          description: List of Labels
+          example: beer=dark,wine=red
+          name: lables
+          schema:
+            type: string
+        - in: query
+          required: false
+          description: Help Text
+          name: help
+          schema:
+            type: string
+        - in: query
+          required: false
+          description: Step width
+          name: step
+          schema:
+            type: float
+      responses:
+        '200':
+          description: Counter was incremented
+        '201':
+          description: Counter was created and incremented
+
+

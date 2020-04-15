@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/jtlprom.iml" filepath="$PROJECT_DIR$/.idea/jtlprom.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/goprometrics.iml" filepath="$PROJECT_DIR$/.idea/goprometrics.iml" />
     </modules>
   </component>
 </project>

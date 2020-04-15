@@ -1,0 +1,55 @@
+### Send a simple counter
+PUT 127.0.0.1:9111/count/my_namespace/simple
+
+> {%
+client.test("I can send a simple counter", function() {
+  client.assert(response.status === 201 || response.status === 200, "Response 201 - new counter created; Response 200 counter incremented");
+});
+%}
+
+### Send a Counter with label foo=beer and bar=wine
+PUT 127.0.0.1:9111/count/my_namespace/with_labels/foo:beer,bar:wine
+
+
+> {%
+client.test("I can send a counter w/ label", function() {
+  client.assert(response.status === 201 || response.status === 200, "Response 201 - new counter created; Response 200 counter incremented");
+});
+%}
+
+### Send a Counter with a help Text
+PUT 127.0.0.1:9111/count/my_namespace/with_helptext?help=I+Like+Beer
+
+> {%
+client.test("I can add a help text to a counter", function() {
+  client.assert(response.status === 201 || response.status === 200, "Response 201 - new counter created; Response 200 counter incremented");
+});
+%}
+
+### Send a Counter with labels and a help Text
+PUT 127.0.0.1:9111/count/my_namespace/with_help_n_labels/bar=beer?help=Beer
+
+> {%
+client.test("I can set labels and help text to a counter", function() {
+  client.assert(response.status === 201 || response.status === 200, "Response 201 - new counter created; Response 200 counter incremented");
+});
+%}
+
+### Increase counter by 5
+PUT 127.0.0.1:9111/count/my_namespace/can_inc_by_5?step=5
+
+> {%
+client.test("I can set labels and help text to a counter", function() {
+  client.assert(response.status === 201 || response.status === 200, "Response 201 - new counter created; Response 200 counter incremented");
+});
+%}
+
+### Expose metrics
+GET 127.0.0.1:9112/metrics
+
+> {%
+client.test("I can expose metrics", function() {
+  client.assert(response.status === 200, "Response 200. Yeay!");
+});
+%}
+

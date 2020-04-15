@@ -24,16 +24,23 @@ func (a Adapter) CounterHandleFunc(h func(writer http.ResponseWriter, request *h
 	a.r.HandleFunc("/count/{ns}/{name}", h).Methods("PUT")
 }
 
-func (a Adapter) Serve() {
-	log.Infof("Start Server on :9111")
-	_ = http.ListenAndServe(":9111", a.r)
+func (a Adapter) Serve(port string) {
+	log.Infoln("Start Server on", port)
+	a.listenAndServe("127.0.0.1:" + port)
 }
 
-func (a Adapter) ServeMetrics() {
+func (a Adapter) ServeMetrics(port string) {
 	a.r.Path("/metrics").Handler(promhttp.Handler())
 
-	log.Infoln("metrics are getting exposed on :9112")
-	_ = http.ListenAndServe(":9112", a.r)
+	log.Infoln("metrics are getting exposed on", port)
+	a.listenAndServe("127.0.0.1:" + port)
+}
+
+func (a Adapter) listenAndServe(addr string) {
+	err := http.ListenAndServe(addr, a.r)
+	if err != nil {
+		log.Errorln(err)
+	}
 }
 
 func (a Adapter) MakeCounterHandler(counter Counter) func(writer http.ResponseWriter, request *http.Request) {
@@ -43,8 +50,9 @@ func (a Adapter) MakeCounterHandler(counter Counter) func(writer http.ResponseWr
 		ns := v["ns"]
 		label := createLabels(v["labels"])
 		step := parseStepWidth(request)
+		help := request.URL.Query().Get("help")
 
-		created, err := counter.inc(ns, name, label, step)
+		created, err := counter.inc(ns, name, label, step, help)
 		if err == nil {
 			handleResponse(created, writer)
 		} else {
@@ -59,6 +67,7 @@ func handleResponse(created bool, writer http.ResponseWriter) {
 	} else {
 		writer.WriteHeader(http.StatusOK)
 	}
+	_, _ = writer.Write([]byte("Ok"))
 }
 
 func handleBadRequestError(err error, writer http.ResponseWriter) {
