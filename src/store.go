@@ -5,9 +5,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/common/log"
 	"strings"
+	"sync"
 )
 
 type CounterStore map[string]*prometheus.CounterVec
+
+var lock sync.Mutex
 
 func (s *CounterStore) addCounter(ns string, name string, label ConstLabel) (newCounterCreated bool, err error) {
 	defer func() {
@@ -21,15 +24,19 @@ func (s *CounterStore) addCounter(ns string, name string, label ConstLabel) (new
 
 	key := buildKey(ns, name, label)
 	if _, ok := (*s)[key]; !ok {
-		newCounterCreated = true
-		(*s)[key] = promauto.NewCounterVec(
-			prometheus.CounterOpts{
-				Namespace: ns,
-				Name:      name,
-			},
-			label.Name,
-		)
-		log.Infof("New counter %s_%s with %#v registered", ns, name, label.Name)
+		lock.Lock()
+		if _, ok := (*s)[key]; !ok {
+			(*s)[key] = promauto.NewCounterVec(
+				prometheus.CounterOpts{
+					Namespace: ns,
+					Name:      name,
+				},
+				label.Name,
+			)
+			newCounterCreated = true
+			log.Infof("New counter %s_%s with %#v registered", ns, name, label.Name)
+		}
+		lock.Unlock()
 	}
 	return
 }
