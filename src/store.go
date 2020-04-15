@@ -34,7 +34,7 @@ func (s *CounterStore) addCounter(ns string, name string, label ConstLabel) (new
 				label.Name,
 			)
 			newCounterCreated = true
-			log.Infof("New counter %s_%s with %#v registered", ns, name, label.Name)
+			log.Infof("New counter %s_%s with labels %v registered", ns, name, label.Name)
 		}
 		lock.Unlock()
 	}
