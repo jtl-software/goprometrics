@@ -5,11 +5,13 @@
 # goprometrics
 
 The use case for Goprometheus is to provide an aggregator and metrics cache for ephemeral processes. Such a scripting 
-languages like PHP. The goprometheus simple, lightweight and fast. It provides easy to use API over HTTP.
+languages like PHP. Goprometheus is simple, lightweight and fast and provide a easy to use API over HTTP.
 
 ## Features
 
-* Support for counter (using namespace and label)
+* Support for counter using namespace and label
+* Histogram support using namespace, label and buckets
+* Summary support using namespace, label and objectives
 * Provide `/metrics` endpoint for scrape Metrics
 
 ## Install - Build it

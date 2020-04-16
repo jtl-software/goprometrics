@@ -8,11 +8,106 @@ import (
 	"sync"
 )
 
+type PrometheusMetricOpts struct {
+	ns string
+	name string
+	label ConstLabel
+	help string
+	histogramBuckets []float64
+	summaryObjectives map[float64]float64
+}
+
+func (opts PrometheusMetricOpts) buildStoreKey() string {
+	return opts.ns + "_" + opts.name + "__" + strings.Join(opts.label.Name, "_")
+}
+
+type PrometheusMetricAdapter interface {
+	create(opts PrometheusMetricOpts, creator func(opts PrometheusMetricOpts, s *CounterStore)) (newCreated bool, err error)
+	invoke(opts PrometheusMetricOpts, value float64)
+	has(opts PrometheusMetricOpts) bool
+	append(opts PrometheusMetricOpts)
+}
+
+type NewCounterStore struct {
+	store map[string]*prometheus.CounterVec
+}
+
+func test()  {
+
+	store := NewCounterStore{
+		store:  map[string]*prometheus.CounterVec{},
+	}
+
+	opts := PrometheusMetricOpts{
+		ns:                "foo",
+		name:              "name",
+		label:             ConstLabel{},
+		help:              "help",
+		histogramBuckets:  nil,
+		summaryObjectives: nil,
+	}
+	createCounter := func(opts PrometheusMetricOpts, s *PrometheusMetricAdapter) {
+		s.append(opts)
+		(*s)[opts.buildStoreKey()] = promauto.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: opts.ns,
+				Name:      opts.name,
+				Help:      opts.help,
+			},
+			opts.label.Name,
+		)
+		log.Infof("A new counter %s_%s with labels %v registered", opts.ns, opts.name, opts.label.Name)
+	}
+	store.create(opts, createCounter)
+}
+
+func (s *NewCounterStore) append(opts PrometheusMetricOpts)  {
+	s.store[opts.buildStoreKey()] = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: opts.ns,
+			Name:      opts.name,
+			Help:      opts.help,
+		},
+		opts.label.Name,
+	)
+}
+
+func (s *NewCounterStore) has(opts PrometheusMetricOpts) bool {
+	_, has := s.store[opts.buildStoreKey()]
+	return has
+}
+
+func (s *NewCounterStore) create(opts PrometheusMetricOpts, creator func(opts PrometheusMetricOpts, s *PrometheusMetricAdapter)) (newCreated bool, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error(r)
+			err = r.(error)
+		}
+	}()
+
+	newCreated = false
+	if !s.has(opts) {
+		counterMutex.Lock()
+		defer counterMutex.Unlock()
+		if !s.has(opts) {
+			creator(opts, s)
+			newCreated = true
+		}
+	}
+	return
+}
+
+func (s *NewCounterStore) invoke(opts PrometheusMetricOpts, value float64) {
+
+}
+
+
 type CounterStore map[string]*prometheus.CounterVec
 type SummaryStore map[string]*prometheus.SummaryVec
 type HistogramStore map[string]*prometheus.HistogramVec
 
 var counterMutex sync.Mutex
+// old stuff
 var summaryMutex sync.Mutex
 var histogramMutex sync.Mutex
 
