@@ -8,8 +8,10 @@ client.test("I can send a simple counter", function() {
 %}
 
 ### Send a Counter with label foo=beer and bar=wine
-PUT 127.0.0.1:9111/count/my_namespace/with_labels/foo:beer,bar:wine
+PUT 127.0.0.1:9111/count/my_namespace/with_labels
+Content-Type: application/x-www-form-urlencoded
 
+labels=foo:beer,bar:wine
 
 > {%
 client.test("I can send a counter w/ label", function() {
@@ -18,7 +20,10 @@ client.test("I can send a counter w/ label", function() {
 %}
 
 ### Send a Counter with a help Text
-PUT 127.0.0.1:9111/count/my_namespace/with_helptext?help=I+Like+Beer
+PUT 127.0.0.1:9111/count/my_namespace/with_helptext
+Content-Type: application/x-www-form-urlencoded
+
+help=I Like Beer
 
 > {%
 client.test("I can add a help text to a counter", function() {
@@ -27,7 +32,10 @@ client.test("I can add a help text to a counter", function() {
 %}
 
 ### Send a Counter with labels and a help Text
-PUT 127.0.0.1:9111/count/my_namespace/with_help_n_labels/bar=beer?help=Beer
+PUT 127.0.0.1:9111/count/my_namespace/with_help_n_labels
+Content-Type: application/x-www-form-urlencoded
+
+labels=foo:beer,bar:wine&help=I Like Beer
 
 > {%
 client.test("I can set labels and help text to a counter", function() {

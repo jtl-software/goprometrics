@@ -13,82 +13,148 @@ paths:
       description: Increment a counter
       parameters:
         - in: path
+          name: ns
           required: true
           description: Namespace
-          name: ns
           example: my_namespace
           schema:
             type: string
         - in: path
+          name: name
           required: true
           description: Counter name
           example: my_counter
-          name: name
           schema:
             type: string
-        - in: query
-          required: false
-          description: Help Text
-          name: help
-          schema:
-            type: string
-        - in: query
-          required: false
-          description: Step width
-          name: step
-          schema:
-            type: float
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CounterRequest'
       responses:
         '200':
           description: Counter was incremented
         '201':
           description: Counter was created and incremented
 
-  /count/{ns}/{name}/{lables}:
+  /sum/{ns}/{name}/{observation}:
     put:
-      operationId: IncLabledCounter
-      summary: Increment a labeled counter
+      operationId: Summary
+      summary: Observe a Summary metric
       description: |
-        Increment a labeled counter. Lables must provides as key value list.
-        Example: beer = dark and wine = red need to send as beer=dark,wine=red
+        Observe a metric using a summary
       parameters:
         - in: path
+          name: ns
           required: true
           description: Namespace
-          name: ns
           example: my_namespace
           schema:
             type: string
         - in: path
+          name: name
           required: true
           description: Counter name
-          name: name
           example: my_counter
           schema:
             type: string
         - in: path
-          required: false
-          description: List of Labels
-          example: beer=dark,wine=red
-          name: lables
-          schema:
-            type: string
-        - in: query
-          required: false
-          description: Help Text
-          name: help
-          schema:
-            type: string
-        - in: query
-          required: false
-          description: Step width
-          name: step
+          name: observation
+          required: true
+          description: Value to observe
+          example: 0.435
           schema:
             type: float
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SummaryRequest'
       responses:
         '200':
           description: Counter was incremented
         '201':
           description: Counter was created and incremented
 
+  /observe/{ns}/{name}/{observation}:
+    put:
+      operationId: Historgram
+      summary: Observe a Histogram metric
+      description: |
+        Observe a metric using a histogram
+      parameters:
+        - in: path
+          name: ns
+          required: true
+          description: Namespace
+          example: my_namespace
+          schema:
+            type: string
+        - in: path
+          name: name
+          required: true
+          description: Counter name
+          example: my_counter
+          schema:
+            type: string
+        - in: path
+          name: observation
+          required: true
+          description: Value to observe
+          example: 0.435
+          schema:
+            type: float
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HistogramRequest'
+      responses:
+        '200':
+          description: Counter was incremented
+        '201':
+          description: Counter was created and incremented
+
+components:
+
+  schemas:
+
+    CounterRequest:
+      type: object
+      properties:
+        labels:
+          type: string
+          example: "path:/login,status:200"
+        help:
+          type: string
+          example: "Describe metric a bit better"
+        step:
+          type: float
+          example: 1.4
+
+    SummaryRequest:
+      type: object
+      properties:
+        labels:
+          type: string
+          example: "path:/login,status:200"
+        help:
+          type: string
+          example: "Describe metric a bit better"
+        objectives:
+          type: string
+          example: "0.5:0.05,0.9:0.01,0.99:0.001"
+
+    HistogramRequest:
+      type: object
+      properties:
+        labels:
+          type: string
+          example: "path:/login,status:200"
+        help:
+          type: string
+          example: "Describe metric a bit better"
+        buckets:
+          type: string
+          example: "0.5,1.0,2.0.4.0"
 

@@ -1,43 +1,71 @@
 package main
 
-import (
-	"flag"
-)
-
 type ConstLabel struct {
 	Name  []string
 	Value []string
 }
 
-type Counter interface {
-	inc(ns string, name string, label ConstLabel, step float64, help string) (bool, error)
+type PrometheusCounter interface {
+	incCounter(ns string, name string, label ConstLabel, step float64, help string) (bool, error)
+}
+
+type PrometheusSummary interface {
+	sum(ns string, name string, label ConstLabel, observation float64, objectives map[float64]float64, help string) (bool, error)
+}
+
+type PrometheusHistogram interface {
+	observe(ns string, name string, label ConstLabel, observation float64, buckets []float64, help string) (bool, error)
 }
 
 type PrometheusMetrics struct {
-	counterStore CounterStore
+	counterStore   CounterStore
+	summaryStore   SummaryStore
+	histogramStore HistogramStore
 }
 
 func main() {
-	var port = flag.String("port", "9111", "Port for incoming API requests")
-	var portMetrics = flag.String("portm", "9112", "Port for prometheus scraping")
-	flag.Parse()
 
-	counter := PrometheusMetrics{counterStore: CounterStore{}}
+	config := NewConfig()
+	prometheusMetrics := PrometheusMetrics{
+		counterStore:   CounterStore{},
+		summaryStore:   SummaryStore{},
+		histogramStore: HistogramStore{},
+	}
 
 	go func() {
-		NewAdapter().ServeMetrics(*portMetrics)
+		NewAdapter(config.mApiHostConfig).ServeMetrics()
 	}()
 
-	api := NewAdapter()
-	handler := api.MakeCounterHandler(counter)
-	api.CounterHandleFunc(handler)
-	api.Serve(*port)
+	api := NewAdapter(config.apiHostConfig)
+
+	// api
+	api.CounterHandleFunc(api.MakeCounterHandler(prometheusMetrics))
+	api.SummaryHandleFunc(api.MakeSummaryHandler(prometheusMetrics))
+	api.HistogramHandleFunc(api.MakeHistogramHandler(prometheusMetrics))
+
+	api.Serve()
 }
 
-func (pm PrometheusMetrics) inc(ns string, name string, label ConstLabel, step float64, help string) (bool, error) {
+func (pm PrometheusMetrics) incCounter(ns string, name string, label ConstLabel, step float64, help string) (bool, error) {
 	created, err := pm.counterStore.addCounter(ns, name, label, help)
 	if err == nil {
 		pm.counterStore.inc(ns, name, label, step)
+	}
+	return created, err
+}
+
+func (pm PrometheusMetrics) sum(ns string, name string, label ConstLabel, observation float64, objectives map[float64]float64, help string) (bool, error) {
+	created, err := pm.summaryStore.addSummary(ns, name, label, objectives, help)
+	if err == nil {
+		pm.summaryStore.observe(ns, name, label, observation)
+	}
+	return created, err
+}
+
+func (pm PrometheusMetrics) observe(ns string, name string, label ConstLabel, observation float64, buckets []float64, help string) (bool, error) {
+	created, err := pm.histogramStore.addHistogram(ns, name, label, buckets, help)
+	if err == nil {
+		pm.histogramStore.observe(ns, name, label, observation)
 	}
 	return created, err
 }
