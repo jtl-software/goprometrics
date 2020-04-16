@@ -22,7 +22,7 @@ go build
 
 ````
 docker build --tag goprometrics:0.1 ./
-docker run -it -p 9111:9111 -p 9112:9112 -v $PWD/src:/go/src/jtlprom goprometrics:0.1
+docker run -it -p 9111:9111 -p 9112:9112 -v $PWD/src:/go/src/goprometrics goprometrics:0.1
 ````
 
 Docker container goprometrics will host the metric collector and running using `refresh`, which means every source change
