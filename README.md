@@ -5,7 +5,7 @@
 # goprometrics
 
 The use case for Goprometheus is to provide an aggregator and metrics cache for ephemeral processes. Such a scripting 
-languages like PHP. Goprometheus is simple, lightweight and fast and provide a easy to use API over HTTP.
+languages like PHP. Goprometheus is simple, lightweight, fast and provide easy to use API over HTTP.
 
 ## Features
 
@@ -42,6 +42,12 @@ Need some logs? `docker-compose logs -f goprometrics`
 
 # Examples
 
-See example.http for Example requests
+````
+curl -XPUT '127.0.0.1:9111/count/foobar/drinks' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'labels=alcoholic:beer'
+
+````
+See example directory for Example requests
 
 
