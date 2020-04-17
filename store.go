@@ -8,47 +8,65 @@ import (
 	"sync"
 )
 
+var metricCreateMutex sync.Mutex
+
+type MetricStore struct {
+	CounterStore   map[string]*prometheus.CounterVec
+	SummaryStore   map[string]*prometheus.SummaryVec
+	HistogramStore map[string]*prometheus.HistogramVec
+}
+
 type PrometheusMetricOpts struct {
-	ns string
-	name string
-	label ConstLabel
-	help string
-	histogramBuckets []float64
+	ns                string
+	name              string
+	label             ConstLabel
+	help              string
+	histogramBuckets  []float64
 	summaryObjectives map[float64]float64
 }
 
-func (opts PrometheusMetricOpts) buildStoreKey() string {
+func (opts PrometheusMetricOpts) BuildStoreKey() string {
 	return opts.ns + "_" + opts.name + "__" + strings.Join(opts.label.Name, "_")
 }
 
-type PrometheusMetricAdapter interface {
-	create(opts PrometheusMetricOpts, creator func(opts PrometheusMetricOpts, s *CounterStore)) (newCreated bool, err error)
-	invoke(opts PrometheusMetricOpts, value float64)
-	has(opts PrometheusMetricOpts) bool
-	append(opts PrometheusMetricOpts)
+func NewMetricStore() MetricStore {
+	return MetricStore{
+		CounterStore:   map[string]*prometheus.CounterVec{},
+		SummaryStore:   map[string]*prometheus.SummaryVec{},
+		HistogramStore: map[string]*prometheus.HistogramVec{},
+	}
 }
 
-type NewCounterStore struct {
-	store map[string]*prometheus.CounterVec
+func (s *MetricStore) has(opts PrometheusMetricOpts) bool {
+	_, hasCounter := s.CounterStore[opts.BuildStoreKey()]
+	_, hasSummary := s.SummaryStore[opts.BuildStoreKey()]
+	_, hasHistogram := s.HistogramStore[opts.BuildStoreKey()]
+	return hasCounter || hasSummary || hasHistogram
 }
 
-func test()  {
+func (s *MetricStore) append(opts PrometheusMetricOpts, creator func(opts PrometheusMetricOpts, s *MetricStore)) (newCreated bool, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+			log.Error(r)
+		}
+	}()
 
-	store := NewCounterStore{
-		store:  map[string]*prometheus.CounterVec{},
+	newCreated = false
+	if !s.has(opts) {
+		metricCreateMutex.Lock()
+		defer metricCreateMutex.Unlock()
+		if !s.has(opts) {
+			creator(opts, s)
+			newCreated = true
+		}
 	}
+	return
+}
 
-	opts := PrometheusMetricOpts{
-		ns:                "foo",
-		name:              "name",
-		label:             ConstLabel{},
-		help:              "help",
-		histogramBuckets:  nil,
-		summaryObjectives: nil,
-	}
-	createCounter := func(opts PrometheusMetricOpts, s *PrometheusMetricAdapter) {
-		s.append(opts)
-		(*s)[opts.buildStoreKey()] = promauto.NewCounterVec(
+func CreateCounterMetricHandler() func(opts PrometheusMetricOpts, s *MetricStore) {
+	return func(opts PrometheusMetricOpts, s *MetricStore) {
+		s.CounterStore[opts.BuildStoreKey()] = promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: opts.ns,
 				Name:      opts.name,
@@ -58,174 +76,57 @@ func test()  {
 		)
 		log.Infof("A new counter %s_%s with labels %v registered", opts.ns, opts.name, opts.label.Name)
 	}
-	store.create(opts, createCounter)
 }
 
-func (s *NewCounterStore) append(opts PrometheusMetricOpts)  {
-	s.store[opts.buildStoreKey()] = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: opts.ns,
-			Name:      opts.name,
-			Help:      opts.help,
-		},
-		opts.label.Name,
-	)
-}
-
-func (s *NewCounterStore) has(opts PrometheusMetricOpts) bool {
-	_, has := s.store[opts.buildStoreKey()]
-	return has
-}
-
-func (s *NewCounterStore) create(opts PrometheusMetricOpts, creator func(opts PrometheusMetricOpts, s *PrometheusMetricAdapter)) (newCreated bool, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Error(r)
-			err = r.(error)
-		}
-	}()
-
-	newCreated = false
-	if !s.has(opts) {
-		counterMutex.Lock()
-		defer counterMutex.Unlock()
-		if !s.has(opts) {
-			creator(opts, s)
-			newCreated = true
-		}
-	}
-	return
-}
-
-func (s *NewCounterStore) invoke(opts PrometheusMetricOpts, value float64) {
-
-}
-
-
-type CounterStore map[string]*prometheus.CounterVec
-type SummaryStore map[string]*prometheus.SummaryVec
-type HistogramStore map[string]*prometheus.HistogramVec
-
-var counterMutex sync.Mutex
-// old stuff
-var summaryMutex sync.Mutex
-var histogramMutex sync.Mutex
-
-func (s *CounterStore) addCounter(ns string, name string, label ConstLabel, help string) (newCounterCreated bool, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Error(r)
-			err = r.(error)
-		}
-	}()
-
-	newCounterCreated = false
-
-	key := buildKey(ns, name, label)
-	if _, ok := (*s)[key]; !ok {
-		counterMutex.Lock()
-		if _, ok := (*s)[key]; !ok {
-			(*s)[key] = promauto.NewCounterVec(
-				prometheus.CounterOpts{
-					Namespace: ns,
-					Name:      name,
-					Help:      help,
-				},
-				label.Name,
-			)
-			newCounterCreated = true
-			log.Infof("A new counter %s_%s with labels %v registered", ns, name, label.Name)
-		}
-		counterMutex.Unlock()
-	}
-	return
-}
-
-func (s *CounterStore) inc(ns string, name string, label ConstLabel, step float64) {
-	key := buildKey(ns, name, label)
-	if _, ok := (*s)[key]; ok {
-		(*s)[key].WithLabelValues(label.Value...).Add(step)
+func CreateSummaryMetricHandler() func(opts PrometheusMetricOpts, s *MetricStore) {
+	return func(opts PrometheusMetricOpts, s *MetricStore) {
+		s.SummaryStore[opts.BuildStoreKey()] = promauto.NewSummaryVec(
+			prometheus.SummaryOpts{
+				Namespace:  opts.ns,
+				Name:       opts.name,
+				Help:       opts.help,
+				Objectives: opts.summaryObjectives,
+			},
+			opts.label.Name,
+		)
+		log.Infof("A new summary %s_%s with labels %v and objectives %v registered", opts.ns, opts.name, opts.label.Name, opts.summaryObjectives)
 	}
 }
 
-func (s *SummaryStore) addSummary(ns string, name string, label ConstLabel, objectives map[float64]float64, help string) (newSummaryCreated bool, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Error(r)
-			err = r.(error)
-		}
-	}()
-
-	newSummaryCreated = false
-
-	key := buildKey(ns, name, label)
-	if _, ok := (*s)[key]; !ok {
-		summaryMutex.Lock()
-		if _, ok := (*s)[key]; !ok {
-			(*s)[key] = promauto.NewSummaryVec(
-				prometheus.SummaryOpts{
-					Namespace:  ns,
-					Name:       name,
-					Help:       help,
-					Objectives: objectives,
-				},
-				label.Name,
-			)
-			newSummaryCreated = true
-			log.Infof("A new summary %s_%s with labels %v and objectives %v registered", ns, name, label.Name, objectives)
-		}
-		summaryMutex.Unlock()
-	}
-	return
-
-}
-
-func (s *SummaryStore) observe(ns string, name string, label ConstLabel, observation float64) {
-	key := buildKey(ns, name, label)
-	if _, ok := (*s)[key]; ok {
-		(*s)[key].WithLabelValues(label.Value...).Observe(observation)
+func CreateHistogramMetricHandler() func(opts PrometheusMetricOpts, s *MetricStore) {
+	return func(opts PrometheusMetricOpts, s *MetricStore) {
+		s.HistogramStore[opts.BuildStoreKey()] = promauto.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: opts.ns,
+				Name:      opts.name,
+				Help:      opts.help,
+				Buckets:   opts.histogramBuckets,
+			},
+			opts.label.Name,
+		)
+		log.Infof("A new histogram %s_%s with labels %v and buckets %v registered", opts.ns, opts.name, opts.label.Name, opts.histogramBuckets)
 	}
 }
 
-func (s *HistogramStore) addHistogram(ns string, name string, label ConstLabel, buckets []float64, help string) (newHistogramCreated bool, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Error(r)
-			err = r.(error)
-		}
-	}()
-
-	newHistogramCreated = false
-
-	key := buildKey(ns, name, label)
-	if _, ok := (*s)[key]; !ok {
-		histogramMutex.Lock()
-		if _, ok := (*s)[key]; !ok {
-			(*s)[key] = promauto.NewHistogramVec(
-				prometheus.HistogramOpts{
-					Namespace: ns,
-					Name:      name,
-					Help:      help,
-					Buckets:   buckets,
-				},
-				label.Name,
-			)
-			newHistogramCreated = true
-			log.Infof("A new histogram %s_%s with labels %v and buckets %v registered", ns, name, label.Name, buckets)
-		}
-		histogramMutex.Unlock()
-	}
-	return
-
+type ConstLabel struct {
+	Name  []string
+	Value []string
 }
 
-func (s *HistogramStore) observe(ns string, name string, label ConstLabel, observation float64) {
-	key := buildKey(ns, name, label)
-	if _, ok := (*s)[key]; ok {
-		(*s)[key].WithLabelValues(label.Value...).Observe(observation)
+func IncCounterHandler() func(s *MetricStore, opts PrometheusMetricOpts, value float64) {
+	return func(s *MetricStore, opts PrometheusMetricOpts, value float64) {
+		s.CounterStore[opts.BuildStoreKey()].WithLabelValues(opts.label.Value...).Add(value)
 	}
 }
 
-func buildKey(ns string, name string, label ConstLabel) string {
-	return ns + "_" + name + "__" + strings.Join(label.Name, "_")
+func ObserveSummaryHandler() func(s *MetricStore, opts PrometheusMetricOpts, value float64) {
+	return func(s *MetricStore, opts PrometheusMetricOpts, value float64) {
+		s.SummaryStore[opts.BuildStoreKey()].WithLabelValues(opts.label.Value...).Observe(value)
+	}
+}
+
+func ObserveHistogramHandler() func(s *MetricStore, opts PrometheusMetricOpts, value float64) {
+	return func(s *MetricStore, opts PrometheusMetricOpts, value float64) {
+		s.HistogramStore[opts.BuildStoreKey()].WithLabelValues(opts.label.Value...).Observe(value)
+	}
 }

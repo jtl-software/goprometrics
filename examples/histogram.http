@@ -1,5 +1,6 @@
 ### Send a simple summary
-PUT 127.0.0.1:9111/observe/api/request_time1/1.7
+PUT 127.0.0.1:9111/observe/api/request_time1/1.787
+
 
 ### Send a labled summary with
 PUT 127.0.0.1:9111/observe/api/request_time2/0.002

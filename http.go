@@ -26,11 +26,11 @@ func (a Adapter) CounterHandleFunc(h func(writer http.ResponseWriter, request *h
 }
 
 func (a Adapter) SummaryHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
-	a.r.HandleFunc("/sum/{ns}/{name}/{observation}", h).Methods("PUT")
+	a.r.HandleFunc("/sum/{ns}/{name}/{observation:[0-9]*\\.?[0-9]+}", h).Methods("PUT")
 }
 
 func (a Adapter) HistogramHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
-	a.r.HandleFunc("/observe/{ns}/{name}/{observation}", h).Methods("PUT")
+	a.r.HandleFunc("/observe/{ns}/{name}/{observation:[0-9]*\\.?[0-9]+}", h).Methods("PUT")
 }
 
 func (a Adapter) Serve() {
@@ -53,80 +53,57 @@ func (a Adapter) listenAndServe() {
 	}
 }
 
-func (a Adapter) MakeCounterHandler(counter PrometheusCounter) func(writer http.ResponseWriter, request *http.Request) {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		v := mux.Vars(request)
-		name := v["name"]
-		ns := v["ns"]
-		step := parseStepWidth(request)
+func (a Adapter) RequestHandler(
+	s MetricStore,
+	creator func(opts PrometheusMetricOpts, s *MetricStore),
+	enlarge func(s *MetricStore, opts PrometheusMetricOpts, value float64),
+) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		v := mux.Vars(r)
+		opts := createPrometheusMetricOpts(r, v)
 
-		_ = request.ParseForm()
-		label := createLabels(request.FormValue("labels"))
-		help := request.FormValue("help")
-
-		created, err := counter.incCounter(ns, name, label, step, help)
-		if err == nil {
-			handleResponse(created, writer)
+		var value float64
+		if v, ok := v["observation"]; ok {
+			formPath, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				handleBadRequestError(err, w)
+				return
+			}
+			value = formPath
 		} else {
-			handleBadRequestError(err, writer)
+			value = parseStepWidth(r)
 		}
-	}
-}
 
-func (a Adapter) MakeSummaryHandler(summary PrometheusSummary) func(writer http.ResponseWriter, request *http.Request) {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		v := mux.Vars(request)
-		name := v["name"]
-		ns := v["ns"]
-		observation, err := strconv.ParseFloat(v["observation"], 64)
+		created, err := s.append(opts, creator)
 		if err != nil {
-			handleBadRequestError(err, writer)
+			handleBadRequestError(err, w)
 			return
 		}
 
-		_ = request.ParseForm()
-		label := createLabels(request.FormValue("labels"))
-		objectives := parseObjectives(request.FormValue("objectives"))
-		help := request.FormValue("help")
-
-		created, err := summary.sum(ns, name, label, observation, objectives, help)
-		if err == nil {
-			handleResponse(created, writer)
-		} else {
-			handleBadRequestError(err, writer)
+		if s.has(opts) {
+			enlarge(&s, opts, value)
 		}
+		handleResponse(created, w)
 	}
 }
 
-func (a Adapter) MakeHistogramHandler(histogram PrometheusHistogram) func(writer http.ResponseWriter, request *http.Request) {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		v := mux.Vars(request)
-		name := v["name"]
-		ns := v["ns"]
-		observation, err := strconv.ParseFloat(v["observation"], 64)
-		if err != nil {
-			handleBadRequestError(err, writer)
-			return
-		}
+func createPrometheusMetricOpts(r *http.Request, v map[string]string) (opts PrometheusMetricOpts) {
+	opts.ns = v["ns"]
+	opts.name = v["name"]
 
-		_ = request.ParseForm()
-		label := createLabels(request.FormValue("labels"))
-		buckets := parseBuckets(request.FormValue("buckets"))
-		help := request.FormValue("help")
+	_ = r.ParseForm()
+	opts.label = createLabels(r.FormValue("labels"))
+	opts.summaryObjectives = parseObjectives(r.FormValue("objectives"))
+	opts.histogramBuckets = parseBuckets(r.FormValue("buckets"))
+	opts.help = r.FormValue("help")
 
-		created, err := histogram.observe(ns, name, label, observation, buckets, help)
-		if err == nil {
-			handleResponse(created, writer)
-		} else {
-			handleBadRequestError(err, writer)
-		}
-	}
+	return
 }
 
-func parseBuckets(s string) (buckets []float64) {
+func parseBuckets(s string) []float64 {
 	obj := strings.Split(s, ",")
-	sort.Strings(obj)
 
+	buckets := make([]float64, 0)
 	for _, value := range obj {
 		bucket, err := strconv.ParseFloat(value, 64)
 		if err != nil {
@@ -135,6 +112,7 @@ func parseBuckets(s string) (buckets []float64) {
 		buckets = append(buckets, bucket)
 	}
 
+	sort.Float64s(buckets)
 	return buckets
 }
 
