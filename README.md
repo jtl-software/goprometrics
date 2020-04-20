@@ -23,17 +23,14 @@ go build
 ./goprometrics
 ````
 
-## Install - using docker
+## Install - Run with Docker
 
 ````
-docker build --tag goprometrics:0.1 ./
-docker run -it -p 9111:9111 -p 9112:9112 -v $PWD/src:/go/src/goprometrics goprometrics:0.1
+docker pull jtlsoftware/goprometrics
+docker run -it -p 9111:9111 -p 9112:9112 jtlsoftware/goprometrics
 ````
 
-Docker container goprometrics will host the metric collector and running using `refresh`, which means every source change
-will trigger a automatic re-build. You may not use it this way in your production.
-
-## Install - using docker-compose
+## Install - Using Docker-Compose
 
 ````
 docker-compose up -d
