@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -20,6 +21,20 @@ var (
 		Namespace: "goprometrics",
 		Name:      "metric_incremented",
 		Help:      "Count when a new metric is incremented or observed",
+	})
+
+	DurationMetricReqHandling = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "goprometrics",
+		Name:      "metric_enlarge_duration_seconds",
+		Help:      "Duration of metric handling during http request",
+		Buckets: []float64{
+			0.000001, // 1 Microsecond
+			0.0001,   // 0.1 Millisecond
+			0.001,    // 1 Millisecond
+			0.01,
+			0.1,
+			1.0, // 1 Second
+		},
 	})
 )
 
@@ -71,6 +86,7 @@ func (a adapter) listenAndServe() {
 
 func (a adapter) RequestHandler(s store.Store) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 
 		v := mux.Vars(r)
 		opts, value, err := createPrometheusMetricOpts(r, v)
@@ -88,6 +104,7 @@ func (a adapter) RequestHandler(s store.Store) func(w http.ResponseWriter, r *ht
 		IncCounter.Inc()
 
 		handleResponse(created, w)
+		DurationMetricReqHandling.Observe(time.Since(start).Seconds())
 	}
 }
 
