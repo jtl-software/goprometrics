@@ -25,7 +25,7 @@ scrape_configs:
 
 alerting:
   alertmanagers:
-    - scheme: http
+    - scheme: api
       static_configs:
         - targets:
             - 'alertmanager:9093'

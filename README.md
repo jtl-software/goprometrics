@@ -18,6 +18,9 @@ languages like PHP. GoProMetrics is simple, lightweight, fast and provide easy t
 
 ````
 go build
+
+// run it
+./goprometrics
 ````
 
 ## Install - using docker

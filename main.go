@@ -1,20 +1,29 @@
 package main
 
+import (
+	"goprometrics/src/api"
+	"goprometrics/src/store"
+	"os"
+	"os/signal"
+)
+
 func main() {
 
-	config := NewConfig()
-	store := NewMetricStore()
+	config := api.NewConfig()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
 
 	go func() {
-		NewAdapter(config.mApiHostConfig).ServeMetrics()
+		metrics := api.NewAdapter(config.MetricsApiHostConfig)
+		metrics.ServeMetrics()
 	}()
 
-	api := NewAdapter(config.apiHostConfig)
+	adapter := api.NewAdapter(config.ApiHostConfig)
 
-	// api
-	api.CounterHandleFunc(api.RequestHandler(store, CreateCounterMetricHandler(), IncCounterHandler()))
-	api.SummaryHandleFunc(api.RequestHandler(store, CreateSummaryMetricHandler(), ObserveSummaryHandler()))
-	api.HistogramHandleFunc(api.RequestHandler(store, CreateHistogramMetricHandler(), ObserveHistogramHandler()))
+	adapter.CounterHandleFunc(adapter.RequestHandler(store.NewCounterStore()))
+	adapter.SummaryHandleFunc(adapter.RequestHandler(store.NewSummaryStore()))
+	adapter.HistogramHandleFunc(adapter.RequestHandler(store.NewHistogramStore()))
 
-	api.Serve()
+	adapter.Serve()
 }

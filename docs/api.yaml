@@ -3,7 +3,7 @@ info:
   title: Goprometric metrics cache API
   version: 1.0.0
 servers:
-  - url: 'http://127.0.0.1:9111'
+  - url: 'api://127.0.0.1:9111'
 paths:
 
   /count/{ns}/{name}/:

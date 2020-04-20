@@ -1,4 +1,4 @@
-module jtlprom
+module goprometrics
 
 go 1.14
 

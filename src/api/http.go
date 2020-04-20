@@ -1,10 +1,13 @@
-package main
+package api
 
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
+	"goprometrics/src/store"
 	"net/http"
 	"os"
 	"sort"
@@ -12,90 +15,101 @@ import (
 	"strings"
 )
 
-type Adapter struct {
-	r      *mux.Router
-	config HostConfig
+var (
+	IncCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: "goprometrics",
+		Name:      "metric_incremented",
+		Help:      "Count when a new metric is incremented or observed",
+	})
+)
+
+type adapter struct {
+	r          *mux.Router
+	config     HostConfig
+	httpServer *http.Server
 }
 
-func NewAdapter(config HostConfig) Adapter {
-	return Adapter{r: mux.NewRouter(), config: config}
+func NewAdapter(config HostConfig) *adapter {
+	return &adapter{r: mux.NewRouter(), config: config}
 }
 
-func (a Adapter) CounterHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
+func (a adapter) CounterHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
 	a.r.HandleFunc("/count/{ns}/{name}", h).Methods("PUT")
 }
 
-func (a Adapter) SummaryHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
+func (a adapter) SummaryHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
 	a.r.HandleFunc("/sum/{ns}/{name}/{observation:[0-9]*\\.?[0-9]+}", h).Methods("PUT")
 }
 
-func (a Adapter) HistogramHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
+func (a adapter) HistogramHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
 	a.r.HandleFunc("/observe/{ns}/{name}/{observation:[0-9]*\\.?[0-9]+}", h).Methods("PUT")
 }
 
-func (a Adapter) Serve() {
+func (a adapter) Serve() {
 	log.Infof("Start Server on %s:%s", a.config.host, a.config.port)
 	a.listenAndServe()
 }
 
-func (a Adapter) ServeMetrics() {
-	a.r.Path("/metrics").Handler(promhttp.Handler())
+func (a adapter) ServeMetrics() {
+	a.r.Path("/metrics").Handler(promhttp.Handler()).Methods("GET")
 
 	log.Infof("Start Metrics Server on %s:%s", a.config.host, a.config.port)
 	a.listenAndServe()
 }
 
-func (a Adapter) listenAndServe() {
-	err := http.ListenAndServe(a.config.host+":"+a.config.port, a.r)
+func (a adapter) listenAndServe() {
+	a.httpServer = &http.Server{
+		Addr:    a.config.host + ":" + a.config.port,
+		Handler: a.r,
+	}
+	err := a.httpServer.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
 }
 
-func (a Adapter) RequestHandler(
-	s MetricStore,
-	creator func(opts PrometheusMetricOpts, s *MetricStore),
-	enlarge func(s *MetricStore, opts PrometheusMetricOpts, value float64),
-) func(w http.ResponseWriter, r *http.Request) {
+func (a adapter) RequestHandler(s store.Store) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		v := mux.Vars(r)
-		opts := createPrometheusMetricOpts(r, v)
-
-		var value float64
-		if v, ok := v["observation"]; ok {
-			formPath, err := strconv.ParseFloat(v, 64)
-			if err != nil {
-				handleBadRequestError(err, w)
-				return
-			}
-			value = formPath
-		} else {
-			value = parseStepWidth(r)
-		}
-
-		created, err := s.append(opts, creator)
+		opts, value, err := createPrometheusMetricOpts(r, v)
 		if err != nil {
 			handleBadRequestError(err, w)
 			return
 		}
 
-		if s.has(opts) {
-			enlarge(&s, opts, value)
+		created, err := store.Append(s, opts)
+		if err != nil {
+			handleBadRequestError(err, w)
+			return
 		}
+		s.Inc(opts, value)
+		IncCounter.Inc()
+
 		handleResponse(created, w)
 	}
 }
 
-func createPrometheusMetricOpts(r *http.Request, v map[string]string) (opts PrometheusMetricOpts) {
-	opts.ns = v["ns"]
-	opts.name = v["name"]
+func createPrometheusMetricOpts(r *http.Request, v map[string]string) (opts store.MetricOpts, value float64, err error) {
+	opts.Ns = v["ns"]
+	opts.Name = v["name"]
 
 	_ = r.ParseForm()
-	opts.label = createLabels(r.FormValue("labels"))
-	opts.summaryObjectives = parseObjectives(r.FormValue("objectives"))
-	opts.histogramBuckets = parseBuckets(r.FormValue("buckets"))
-	opts.help = r.FormValue("help")
+	opts.Label = createLabels(r.FormValue("labels"))
+	opts.SummaryObjectives = parseObjectives(r.FormValue("objectives"))
+	opts.HistogramBuckets = parseBuckets(r.FormValue("buckets"))
+	opts.Help = r.FormValue("help")
+
+	if v, ok := v["observation"]; ok {
+		formPath, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return opts, value, err
+		}
+		value = formPath
+	} else {
+		value = parseStepWidth(r)
+	}
 
 	return
 }
@@ -172,8 +186,8 @@ func parseStepWidth(request *http.Request) float64 {
 	return inc
 }
 
-func createLabels(fromRequest string) ConstLabel {
-	var l ConstLabel
+func createLabels(fromRequest string) store.ConstLabel {
+	var l store.ConstLabel
 
 	labels := strings.Split(fromRequest, ",")
 	sort.Strings(labels)
