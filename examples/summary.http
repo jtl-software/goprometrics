@@ -8,6 +8,6 @@ Content-Type: application/x-www-form-urlencoded
 labels=path:/login,status:200&objectives=0.5:0.05,0.9:0.01,0.99:0.001&help=This could be helpful
 
 ### Send a simple counter
-PUT 127.0.0.1:9112/metrics
+GET 127.0.0.1:9112/metrics
 
 

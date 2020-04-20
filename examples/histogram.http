@@ -9,4 +9,4 @@ Content-Type: application/x-www-form-urlencoded
 labels=path:/login,status:200&buckets=0.1,0.5,1.0,5.0&help=This could be helpful
 
 ### Send a simple counter
-PUT 127.0.0.1:9112/metrics
+GET 127.0.0.1:9112/metrics
