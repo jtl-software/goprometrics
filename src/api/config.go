@@ -1,4 +1,4 @@
-package main
+package api
 
 import "flag"
 
@@ -8,8 +8,8 @@ type HostConfig struct {
 }
 
 type Config struct {
-	apiHostConfig  HostConfig
-	mApiHostConfig HostConfig
+	ApiHostConfig        HostConfig
+	MetricsApiHostConfig HostConfig
 }
 
 func NewConfig() Config {
@@ -21,11 +21,11 @@ func NewConfig() Config {
 	flag.Parse()
 
 	return Config{
-		apiHostConfig: HostConfig{
+		ApiHostConfig: HostConfig{
 			host: *host,
 			port: *port,
 		},
-		mApiHostConfig: HostConfig{
+		MetricsApiHostConfig: HostConfig{
 			host: *hostMetrics,
 			port: *portMetrics,
 		},

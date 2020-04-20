@@ -7,8 +7,20 @@ client.test("I can send a simple counter", function() {
 });
 %}
 
+### Can not register counter with same name and different options
+PUT 127.0.0.1:9111/count/my_namespace/simple
+Content-Type: application/x-www-form-urlencoded
+
+labels=foo:beer,bar:wine
+
+> {%
+client.test("I can send a simple counter", function() {
+  client.assert(response.status === 400, "Response 400 - can no not register a counter we the same name an different options");
+});
+%}
+
 ### Send a Counter with label foo=beer and bar=wine
-PUT 127.0.0.1:9111/count/my_namespace/with_labels
+PUT 127.0.0.1:9111/count/my_namespace/simple_with_labels
 Content-Type: application/x-www-form-urlencoded
 
 labels=foo:beer,bar:wine
