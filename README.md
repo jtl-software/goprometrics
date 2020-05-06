@@ -47,6 +47,7 @@ curl -XPUT '127.0.0.1:9111/count/foobar/drinks' \
 --header 'Content-Type: application/x-www-form-urlencoded' \
 --data-urlencode 'labels=alcoholic:beer'
 
+curl -XPUT '127.0.0.1:9112/metrics'
 ````
 See example directory for Example requests
 

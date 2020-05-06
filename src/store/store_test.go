@@ -64,6 +64,25 @@ func TestNewSummaryStore(t *testing.T) {
 	}
 }
 
+func TestNewGaugeStore(t *testing.T) {
+	tests := []struct {
+		name string
+		want Store
+	}{
+		{
+			name: "can create a new empty Gauge Store",
+			want: gaugeStore{map[string]*prometheus.GaugeVec{}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewGaugeStore(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewGaugeStore() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_counterStore_Append(t *testing.T) {
 	store := counterStore{map[string]*prometheus.CounterVec{}}
 	store.Append(MetricOpts{Name: "Test_counterStore_Append"})
@@ -155,5 +174,35 @@ func Test_summaryStore_Inc(t *testing.T) {
 	result := testutil.CollectAndCount(store.store[opts.Key()])
 	if result != 1 {
 		t.Errorf("Expect to have a Summary which can be colleted - result %d", result)
+	}
+}
+
+func Test_GaugeStore_Append(t *testing.T) {
+	store := gaugeStore{map[string]*prometheus.GaugeVec{}}
+	store.Append(MetricOpts{Name: "Test_GaugeStore_Append"})
+	if len(store.store) != 1 {
+		t.Errorf("Expect to have exactly 1 gauge in store - %d given", len(store.store))
+	}
+}
+
+func Test_GaugeStore_Inc(t *testing.T) {
+	store := gaugeStore{map[string]*prometheus.GaugeVec{}}
+	opts := MetricOpts{Name: "Test_GaugeStore_Inc"}
+	store.Append(opts)
+	store.Inc(opts, -1.01)
+	store.Inc(opts, 2.02)
+
+	result := testutil.ToFloat64(store.store[opts.Key()])
+	if result != 1.01 {
+		t.Errorf("Expect to have a Counter in state 1.01 - result %f", result)
+	}
+}
+
+func Test_GaugeStore_Has(t *testing.T) {
+	store := gaugeStore{map[string]*prometheus.GaugeVec{}}
+	opts := MetricOpts{Name: "Test_GaugeStore_Has"}
+	store.Append(opts)
+	if store.Has(opts) != true {
+		t.Errorf("Expect to have a Item for Key %s in Gauge Store", opts.Key())
 	}
 }

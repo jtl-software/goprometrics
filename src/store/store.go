@@ -21,6 +21,9 @@ type (
 	histogramStore struct {
 		store map[string]*prometheus.HistogramVec
 	}
+	gaugeStore struct {
+		store map[string]*prometheus.GaugeVec
+	}
 )
 
 func NewCounterStore() Store {
@@ -38,6 +41,12 @@ func NewSummaryStore() Store {
 func NewHistogramStore() Store {
 	return histogramStore{
 		store: map[string]*prometheus.HistogramVec{},
+	}
+}
+
+func NewGaugeStore() Store {
+	return gaugeStore{
+		store: map[string]*prometheus.GaugeVec{},
 	}
 }
 
@@ -113,4 +122,28 @@ func (s histogramStore) Inc(opts MetricOpts, value float64) {
 	if s.Has(opts) {
 		s.store[opts.Key()].WithLabelValues(opts.Label.Value...).Observe(value)
 	}
+}
+
+// Gauge
+func (g gaugeStore) Append(opts MetricOpts) {
+	g.store[opts.Key()] = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: opts.Ns,
+			Name:      opts.Name,
+			Help:      opts.Help,
+		},
+		opts.Label.Name,
+	)
+	log.Infof("A new gauge %s_%s with labels %v registered", opts.Ns, opts.Name, opts.Label.Name)
+}
+
+func (g gaugeStore) Inc(opts MetricOpts, value float64) {
+	if g.Has(opts) {
+		g.store[opts.Key()].WithLabelValues(opts.Label.Value...).Add(value)
+	}
+}
+
+func (g gaugeStore) Has(opts MetricOpts) bool {
+	_, has := g.store[opts.Key()]
+	return has
 }

@@ -24,6 +24,7 @@ func main() {
 	adapter.CounterHandleFunc(adapter.RequestHandler(store.NewCounterStore()))
 	adapter.SummaryHandleFunc(adapter.RequestHandler(store.NewSummaryStore()))
 	adapter.HistogramHandleFunc(adapter.RequestHandler(store.NewHistogramStore()))
+	adapter.GaugeHandleFunc(adapter.RequestHandler(store.NewGaugeStore()))
 
 	adapter.Serve()
 }

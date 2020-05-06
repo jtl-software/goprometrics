@@ -3,7 +3,7 @@ PUT 127.0.0.1:9111/observe/api/request_time1/1.787
 
 
 ### Send a labled summary with
-PUT 127.0.0.1:9111/observe/api/request_time2/0.002
+PUT 127.0.0.1:9111/observe/api/request_time2/-0.002
 Content-Type: application/x-www-form-urlencoded
 
 labels=path:/login,status:200&buckets=0.1,0.5,1.0,5.0&help=This could be helpful
