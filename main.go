@@ -3,16 +3,11 @@ package main
 import (
 	"goprometrics/src/api"
 	"goprometrics/src/store"
-	"os"
-	"os/signal"
 )
 
 func main() {
 
 	config := api.NewConfig()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
 
 	go func() {
 		metrics := api.NewAdapter(config.MetricsApiHostConfig)
