@@ -23,6 +23,21 @@ go build
 ./goprometrics
 ````
 
+### Run it
+
+````
+./goprometrics -h
+Usage of ./goprometrics:
+  -host string
+        Api Host (default "127.0.0.1")
+  -hostm string
+        Host to expose metrics (default "127.0.0.1")
+  -port string
+        Api Port (default "9111")
+  -portm string
+        Port to expose metrics (default "9112")
+````
+
 ## Install - Run with Docker
 
 ````
@@ -30,7 +45,7 @@ docker pull jtlsoftware/goprometrics
 docker run -it -p 9111:9111 -p 9112:9112 jtlsoftware/goprometrics
 ````
 
-## Install - Using Docker-Compose
+## Install - Run with Docker-Compose
 
 ````
 docker-compose up -d
