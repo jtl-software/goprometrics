@@ -2,7 +2,7 @@
 PUT 127.0.0.1:9111/sum/api/request_time_simple_summary/1.7
 
 ### Send a labled summary with
-PUT 127.0.0.1:9111/sum/api/request_time_w_lables_n_objectives/0.1
+PUT 127.0.0.1:9111/sum/api/request_time_w_lables_n_objectives/-0.1
 Content-Type: application/x-www-form-urlencoded
 
 labels=path:/login,status:200&objectives=0.5:0.05,0.9:0.01,0.99:0.001&help=This could be helpful

@@ -53,11 +53,15 @@ func (a adapter) CounterHandleFunc(h func(writer http.ResponseWriter, request *h
 }
 
 func (a adapter) SummaryHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
-	a.r.HandleFunc("/sum/{ns}/{name}/{observation:[0-9]*\\.?[0-9]+}", h).Methods("PUT")
+	a.r.HandleFunc("/sum/{ns}/{name}/{value:[-0-9]*\\.?[0-9]+}", h).Methods("PUT")
 }
 
 func (a adapter) HistogramHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
-	a.r.HandleFunc("/observe/{ns}/{name}/{observation:[0-9]*\\.?[0-9]+}", h).Methods("PUT")
+	a.r.HandleFunc("/observe/{ns}/{name}/{value:[-0-9]*\\.?[0-9]+}", h).Methods("PUT")
+}
+
+func (a adapter) GaugeHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
+	a.r.HandleFunc("/gauge/{ns}/{name}/{value:[-0-9]*\\.?[0-9]+}", h).Methods("PUT")
 }
 
 func (a adapter) Serve() {
@@ -118,7 +122,7 @@ func createPrometheusMetricOpts(r *http.Request, v map[string]string) (opts stor
 	opts.HistogramBuckets = parseBuckets(r.FormValue("buckets"))
 	opts.Help = r.FormValue("help")
 
-	if v, ok := v["observation"]; ok {
+	if v, ok := v["value"]; ok {
 		formPath, err := strconv.ParseFloat(v, 64)
 		if err != nil {
 			return opts, value, err
@@ -198,7 +202,7 @@ func handleBadRequestError(err error, writer http.ResponseWriter) {
 func parseStepWidth(request *http.Request) float64 {
 	inc, _ := strconv.ParseFloat(request.URL.Query().Get("add"), 64)
 	if inc <= 0 {
-		inc = 1
+		inc = 1.0
 	}
 	return inc
 }

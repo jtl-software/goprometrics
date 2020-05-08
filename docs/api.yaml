@@ -75,6 +75,8 @@ paths:
           description: Counter was incremented
         '201':
           description: Counter was created and incremented
+        '400':
+          description: Fail to handle metric request
 
   /observe/{ns}/{name}/{observation}:
     put:
@@ -114,6 +116,49 @@ paths:
           description: Counter was incremented
         '201':
           description: Counter was created and incremented
+        '400':
+          description: Fail to handle metric request
+
+  /gauge/{ns}/{name}/{value}:
+    put:
+      operationId: Gauge
+      summary: Increase or decreate a gauge metric
+      description: |
+        Increase or decreate a gauge metric
+      parameters:
+        - in: path
+          name: ns
+          required: true
+          description: Namespace
+          example: my_namespace
+          schema:
+            type: string
+        - in: path
+          name: name
+          required: true
+          description: Gauge name
+          example: my_gauge
+          schema:
+            type: string
+        - in: path
+          name: value
+          required: true
+          description: Value to gauge
+          example: -0.435
+          schema:
+            type: float
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GaugeRequest'
+      responses:
+        '200':
+          description: Counter was incremented
+        '201':
+          description: Counter was created and incremented
+        '400':
+          description: Fail to handle metric request
 
 components:
 
@@ -157,4 +202,14 @@ components:
         buckets:
           type: string
           example: "0.5,1.0,2.0.4.0"
+
+    GaugeRequest:
+      type: object
+      properties:
+        labels:
+          type: string
+          example: "worker:payment,status:200"
+        help:
+          type: string
+          example: "Describe metric a bit better"
 

@@ -4,15 +4,19 @@
 
 # GoProMetrics
 
+![Test](https://github.com/jtl-software/goprometrics/workflows/Test/badge.svg?branch=master)
+
 The use case for GoProMetrics is to provide an aggregator and metrics cache for ephemeral processes. Such a scripting 
 languages like PHP. GoProMetrics is simple, lightweight, fast and provide easy to use API over HTTP.
 
 ## Features
 
-* Support for counter using namespace and label
-* Histogram support using namespace, label and buckets
-* Summary support using namespace, label and objectives
-* Provide `/metrics` endpoint for scrape Metrics
+* Support for Counter metrics
+* Support for Gauge metrics
+* Support for Histogram metrics
+* Support form Summary metrics
+* Each metric can be described using Namespace, Labels and Help Text
+* Provide `/metrics` endpoint for scrapping
 
 ## Install - Build it
 
@@ -57,12 +61,18 @@ Need some logs? `docker-compose logs -f goprometrics`
 
 # Examples
 
+Push and increment a counter
 ````
 curl -XPUT '127.0.0.1:9111/count/foobar/drinks' \
 --header 'Content-Type: application/x-www-form-urlencoded' \
 --data-urlencode 'labels=alcoholic:beer'
-
 ````
+
+Expose Metrics
+````
+curl -XPUT '127.0.0.1:9112/metrics'
+````
+
 See example directory for Example requests
 
 

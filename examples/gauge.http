@@ -1,0 +1,62 @@
+### Send a simple gauge
+PUT 127.0.0.1:9111/gauge/my_namespace/simple_gauge/1.2
+
+> {%
+client.test("I can send a simple gauge", function() {
+  client.assert(response.status === 201 || response.status === 200, "Response 201 - new gauge created; Response 200 counter incremented");
+});
+%}
+
+### Decrease a gauge
+PUT 127.0.0.1:9111/gauge/my_namespace/simple_gauge/-3.34
+
+> {%
+client.test("I can send a simple gauge", function() {
+  client.assert(response.status === 201 || response.status === 200, "Response 201 - new gauge created; Response 200 counter incremented");
+});
+%}
+
+### A Gauge can have labels
+PUT 127.0.0.1:9111/gauge/my_namespace/gauge_w_labels/1.0
+Content-Type: application/x-www-form-urlencoded
+
+labels=foo:beer,bar:wine
+
+> {%
+client.test("I can send a simple gauge", function() {
+  client.assert(response.status === 201 || response.status === 200, "Response 201 - new gauge created; Response 200 counter incremented");
+});
+%}
+
+### Can not register same gauge with different options
+PUT 127.0.0.1:9111/gauge/my_namespace/simple_gauge/1.4
+Content-Type: application/x-www-form-urlencoded
+
+labels=foo:beer,bar:wine
+
+> {%
+client.test("I can send a simple counter", function() {
+  client.assert(response.status === 400, "Response 400 - can no not register a gauge we the same name an different options");
+});
+%}
+
+### Send a gauge with help text
+PUT 127.0.0.1:9111/gauge/my_namespace/gauge_with_helptext/43.2
+Content-Type: application/x-www-form-urlencoded
+
+help=I Like Beer
+
+> {%
+client.test("I can add a help text to a counter", function() {
+  client.assert(response.status === 201 || response.status === 200, "Response 201 - new gauge created; Response 200 counter incremented");
+});
+%}
+
+### Expose metrics
+GET 127.0.0.1:9112/metrics
+
+> {%
+client.test("I can expose metrics", function() {
+  client.assert(response.status === 200, "Response 200. Yeay!");
+});
+%}
