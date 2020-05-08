@@ -70,7 +70,7 @@ curl -XPUT '127.0.0.1:9111/count/foobar/drinks' \
 
 Expose Metrics
 ````
-curl -XPUT '127.0.0.1:9112/metrics'
+curl '127.0.0.1:9112/metrics'
 ````
 
 See example directory for Example requests
