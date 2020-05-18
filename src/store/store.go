@@ -4,7 +4,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/common/log"
+	"math/rand"
+	"sync"
+	"time"
 )
+
+var seededRand *rand.Rand = rand.New(
+	rand.NewSource(time.Now().UnixNano()))
 
 type (
 	Store interface {
@@ -24,11 +30,25 @@ type (
 	gaugeStore struct {
 		store map[string]*prometheus.GaugeVec
 	}
+	UniqueCounter struct {
+		keyMap   sync.Map
+		counter  *prometheus.CounterVec
+		ucounter *prometheus.CounterVec
+	}
+	UniqueCounterStore struct {
+		store map[string]*UniqueCounter
+	}
 )
 
 func NewCounterStore() Store {
 	return counterStore{
 		store: map[string]*prometheus.CounterVec{},
+	}
+}
+
+func NewUniqueCounterStore() UniqueCounterStore {
+	return UniqueCounterStore{
+		store: map[string]*UniqueCounter{},
 	}
 }
 
@@ -146,4 +166,73 @@ func (g gaugeStore) Inc(opts MetricOpts, value float64) {
 func (g gaugeStore) Has(opts MetricOpts) bool {
 	_, has := g.store[opts.Key()]
 	return has
+}
+
+// DeDup Counter Store
+func (d UniqueCounterStore) Append(opts MetricOpts) {
+	d.store[opts.Key()] = &UniqueCounter{
+		keyMap: sync.Map{},
+		ucounter: promauto.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: opts.Ns,
+				Name:      "unq_" + opts.Name,
+				Help:      opts.Help,
+			},
+			opts.Label.Name,
+		),
+		counter: promauto.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: opts.Ns,
+				Name:      opts.Name,
+				Help:      opts.Help,
+			},
+			opts.Label.Name,
+		),
+	}
+	log.Infof("A new UniqueCounter %s_%s with labels %v registered", opts.Ns, opts.Name, opts.Label.Name)
+}
+
+func (d UniqueCounterStore) Inc(opts MetricOpts, value float64) {
+	if d.Has(opts) {
+		k := opts.Key()
+		d.store[k].counter.WithLabelValues(opts.Label.Value...).Add(value)
+
+		hasCounted := d.isCounted(opts, k)
+		if hasCounted == false {
+			d.store[k].ucounter.WithLabelValues(opts.Label.Value...).Add(value)
+		}
+
+		if seededRand.Intn(1000000) == 1 {
+			go d.store[k].Gc()
+		}
+	}
+}
+
+func (d UniqueCounterStore) isCounted(opts MetricOpts, k string) bool {
+	_, hasCounted := d.store[k].keyMap.LoadOrStore(opts.DedupHash, time.Now().Unix()+(60))
+	return hasCounted
+}
+
+func (d UniqueCounterStore) Has(opts MetricOpts) bool {
+	_, has := d.store[opts.Key()]
+	return has
+}
+
+func (d UniqueCounterStore) GetStore() map[string]*UniqueCounter {
+	return d.store
+}
+
+func (d *UniqueCounter) Gc() (deleted int64, length int64) {
+
+	gcTime := time.Now().Unix()
+	d.keyMap.Range(func(key, value interface{}) bool {
+		if value.(int64) <= gcTime {
+			d.keyMap.Delete(key)
+			deleted++
+		}
+		length++
+		return true
+	})
+
+	return deleted, length
 }
