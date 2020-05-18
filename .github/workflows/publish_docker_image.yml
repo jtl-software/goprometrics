@@ -9,10 +9,20 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
-      - name: Push to Docker Hub
+
+      - name: Push to Docker (Release Tag)
         uses: docker/build-push-action@v1
         with:
           username: ${{ secrets.JTLEA_DOCKER_USERNAME }}
           password: ${{ secrets.JTLEA_DOCKER_SECRET }}
           repository: jtlsoftware/goprometrics
           tag_with_ref: true
+          tags: "latest"
+
+      - name: Push to Docker (Latest)
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.JTLEA_DOCKER_USERNAME }}
+          password: ${{ secrets.JTLEA_DOCKER_SECRET }}
+          repository: jtlsoftware/goprometrics
+          tags: "latest"
