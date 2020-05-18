@@ -9,6 +9,8 @@
 The use case for GoProMetrics is to provide an aggregator and metrics cache for ephemeral processes. Such a scripting 
 languages like PHP. GoProMetrics is simple, lightweight, fast and provide easy to use API over HTTP.
 
+PHP Client: https://github.com/jtl-software/goprometrics-client
+
 ## Features
 
 * Support for Counter metrics
