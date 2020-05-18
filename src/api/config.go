@@ -14,9 +14,9 @@ type Config struct {
 
 func NewConfig() Config {
 
-	var host = flag.String("host", "127.0.0.1", "Api Host")
+	var host = flag.String("host", "0.0.0.0", "Api Host")
 	var port = flag.String("port", "9111", "Api Port")
-	var hostMetrics = flag.String("hostm", "127.0.0.1", "Host to expose metrics")
+	var hostMetrics = flag.String("hostm", "0.0.0.0", "Host to expose metrics")
 	var portMetrics = flag.String("portm", "9112", "Port to expose metrics")
 	flag.Parse()
 
