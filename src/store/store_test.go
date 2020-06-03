@@ -206,3 +206,42 @@ func Test_GaugeStore_Has(t *testing.T) {
 		t.Errorf("Expect to have a Item for Key %s in Gauge Store", opts.Key())
 	}
 }
+
+func TestNewDeduplicationCounterStore(t *testing.T) {
+	c := UniqueCounterStore{
+		store: map[string]*UniqueCounter{},
+	}
+
+	opts := MetricOpts{
+		Ns:        "test",
+		Name:      "foo",
+		DedupHash: "foo",
+	}
+	Append(c, opts)
+	c.Inc(opts, 1.0)
+	c.Inc(opts, 1.0)
+
+	result := testutil.ToFloat64(c.store[opts.Key()].counter)
+	if result != 1.0 {
+		t.Errorf("Expect to have a Counter in state 1.0 - result %f", result)
+	}
+}
+
+func BenchmarkNewDeduplicationCounterStore(b *testing.B) {
+	c := UniqueCounterStore{
+		store: map[string]*UniqueCounter{},
+	}
+
+	println("Run bench")
+	opts := MetricOpts{
+		Ns:   "test",
+		Name: "foo",
+	}
+	Append(c, opts)
+
+	for n := 0; n < b.N; n++ {
+		opts.DedupHash = string(n)
+		c.Inc(opts, 1.0)
+	}
+
+}

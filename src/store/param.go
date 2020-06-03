@@ -14,6 +14,7 @@ type MetricOpts struct {
 	Help              string
 	HistogramBuckets  []float64
 	SummaryObjectives map[float64]float64
+	DedupHash         string
 }
 
 func (opts MetricOpts) Key() string {

@@ -52,6 +52,10 @@ func (a adapter) CounterHandleFunc(h func(writer http.ResponseWriter, request *h
 	a.r.HandleFunc("/count/{ns}/{name}", h).Methods("PUT")
 }
 
+func (a adapter) UniqueCounterHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
+	a.r.HandleFunc("/ucount/{ns}/{name}/{dedupHash}", h).Methods("PUT")
+}
+
 func (a adapter) SummaryHandleFunc(h func(writer http.ResponseWriter, request *http.Request)) {
 	a.r.HandleFunc("/sum/{ns}/{name}/{value:[-0-9]*\\.?[0-9]+}", h).Methods("PUT")
 }
@@ -115,6 +119,7 @@ func (a adapter) RequestHandler(s store.Store) func(w http.ResponseWriter, r *ht
 func createPrometheusMetricOpts(r *http.Request, v map[string]string) (opts store.MetricOpts, value float64, err error) {
 	opts.Ns = v["ns"]
 	opts.Name = v["name"]
+	opts.DedupHash = v["dedupHash"]
 
 	_ = r.ParseForm()
 	opts.Label = createLabels(r.FormValue("labels"))

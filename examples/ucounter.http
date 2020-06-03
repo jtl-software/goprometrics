@@ -1,0 +1,18 @@
+### Send a simple counter
+PUT 127.0.0.1:9111/ucount/my_namespace/simple/hashvalue2
+
+> {%
+client.test("I can send a simple counter", function() {
+  client.assert(response.status === 201 || response.status === 200, "Response 201 - new counter created; Response 200 counter incremented");
+});
+%}
+
+### Expose metrics
+GET 127.0.0.1:9112/metrics
+
+> {%
+client.test("I can expose metrics", function() {
+  client.assert(response.status === 200, "Response 200. Yeay!");
+});
+%}
+
