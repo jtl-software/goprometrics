@@ -139,7 +139,13 @@ func (g gaugeStore) Append(opts MetricOpts) {
 
 func (g gaugeStore) Inc(opts MetricOpts, value float64) {
 	if g.Has(opts) {
-		g.store[opts.Key()].WithLabelValues(opts.Label.Value...).Add(value)
+		gauge := g.store[opts.Key()].WithLabelValues(opts.Label.Value...)
+
+		if opts.SetGaugeToValue == true {
+			gauge.Set(value)
+		} else {
+			gauge.Add(value)
+		}
 	}
 }
 

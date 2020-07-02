@@ -121,6 +121,7 @@ func createPrometheusMetricOpts(r *http.Request, v map[string]string) (opts stor
 	opts.SummaryObjectives = parseObjectives(r.FormValue("objectives"))
 	opts.HistogramBuckets = parseBuckets(r.FormValue("buckets"))
 	opts.Help = r.FormValue("help")
+	opts.SetGaugeToValue = r.FormValue("useSet") == "1"
 
 	if v, ok := v["value"]; ok {
 		formPath, err := strconv.ParseFloat(v, 64)

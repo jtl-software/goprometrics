@@ -16,6 +16,12 @@ client.test("I can send a simple gauge", function() {
 });
 %}
 
+### Set Gauge to a value
+PUT 127.0.0.1:9111/gauge/my_namespace/simple_gauge/13.37
+Content-Type: application/x-www-form-urlencoded
+
+useSet=1
+
 ### A Gauge can have labels
 PUT 127.0.0.1:9111/gauge/my_namespace/gauge_w_labels/1.0
 Content-Type: application/x-www-form-urlencoded
