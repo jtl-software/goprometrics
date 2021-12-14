@@ -216,9 +216,9 @@ func createLabels(fromRequest string) store.ConstLabel {
 
 	for _, value := range labels {
 		parts := strings.Split(value, ":")
-		if len(parts) == 2 {
+		if len(parts) >= 2 {
 			l.Name = append(l.Name, parts[0])
-			l.Value = append(l.Value, parts[1])
+			l.Value = append(l.Value, strings.Join(parts[1:], ":"))
 		}
 	}
 	return l

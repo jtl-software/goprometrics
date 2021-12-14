@@ -60,7 +60,19 @@ PUT 127.0.0.1:9111/count/my_namespace/can_inc_by_5?step=5
 
 > {%
 client.test("I can set labels and help text to a counter", function() {
-  client.assert(response.status === 201 || response.status === 200, "Response 201 - new counter created; Response 200 counter incremented");
+  client.assert(response.status === 201 || response.status === 200, "Response 201 - new counter created; Response 20 counter incremented");
+});
+%}
+
+### It will handle Label Value with contain a colon (:) correctly
+PUT 127.0.0.1:9111/count/my_namespace/label_w_colon_inside
+Content-Type: application/x-www-form-urlencoded
+
+labels=foo:beer,bar:Mozilla%2F5.0+%28X11%3B+Ubuntu%3B+Linux+x86_64%3B+rv%3A95.0%29+Gecko%2F20100101+Firefox%2F95.0,another:string
+
+> {%
+client.test("It will handle Label Value with contain a colon (:) correctly", function() {
+  client.assert(response.status === 201 || response.status === 200, "Receive Http " + response.status + " but expect Response 201 (counter created) or 200 (incremented)");
 });
 %}
 
@@ -72,4 +84,3 @@ client.test("I can expose metrics", function() {
   client.assert(response.status === 200, "Response 200. Yeay!");
 });
 %}
-
