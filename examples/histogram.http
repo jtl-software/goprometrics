@@ -8,5 +8,15 @@ Content-Type: application/x-www-form-urlencoded
 
 labels=path:/login,status:200&buckets=0.1,0.5,1.0,5.0&help=This could be helpful
 
+### I discovered that the lowest value may be 0.0001 and this is still accepted by the server, below this value the message comes:
+### see https://github.com/jtl-software/goprometrics/issues/11
+PUT http://127.0.0.1:9111/observe/zzz/NAME/0.000001
+
+> {%
+client.test("Even small observations can be metered", function() {
+  client.assert(response.status === 201 || response.status === 200, "Http Code 200 or 201 expected - " + response.status + " given");
+});
+%}
+
 ### Send a simple counter
 GET 127.0.0.1:9112/metrics
