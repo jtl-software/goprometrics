@@ -18,6 +18,12 @@ func Test_createPrometheusMetricOpts(t *testing.T) {
 		strings.NewReader("labels=foo:bar,beer:wine&objectives=0.5:0.6,0.99:0.10&buckets=1,2&help=beer"))
 	requestWithLabels.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
+	requestWithLabelsContainColonInValues, _ := http.NewRequest(
+		"PUT",
+		"foo.de",
+		strings.NewReader("labels=foo:bar,beer:wi:ne,wine:red&objectives=0.5:0.6,0.99:0.10&buckets=1,2&help=beer"))
+	requestWithLabelsContainColonInValues.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
 	type args struct {
 		r *http.Request
 		v map[string]string
@@ -52,6 +58,26 @@ func Test_createPrometheusMetricOpts(t *testing.T) {
 				Label: store.ConstLabel{
 					Name:  []string{"beer", "foo"},
 					Value: []string{"wine", "bar"},
+				},
+				Help:             "beer",
+				HistogramBuckets: []float64{1, 2},
+				SummaryObjectives: map[float64]float64{
+					0.5:  0.6,
+					0.99: 0.10,
+				},
+			},
+			wantValue: 1,
+			wantErr:   false,
+		},
+		{
+			name: "can handle colon in label value correctly",
+			args: args{requestWithLabelsContainColonInValues, map[string]string{}},
+			wantOpts: store.MetricOpts{
+				Ns:   "",
+				Name: "",
+				Label: store.ConstLabel{
+					Name:  []string{"beer", "foo", "wine"},
+					Value: []string{"wi:ne", "bar", "red"},
 				},
 				Help:             "beer",
 				HistogramBuckets: []float64{1, 2},
