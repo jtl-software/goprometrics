@@ -56,7 +56,7 @@ client.test("I can set labels and help text to a counter", function() {
 %}
 
 ### Increase counter by 5
-PUT 127.0.0.1:9111/count/my_namespace/can_inc_by_5?step=5
+PUT 127.0.0.1:9111/count/my_namespace/can_inc_by_5?add=5.1
 
 > {%
 client.test("I can set labels and help text to a counter", function() {
