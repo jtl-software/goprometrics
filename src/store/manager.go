@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"log/slog"
 	"sync"
 
@@ -27,8 +28,13 @@ var (
 func Append(s Store, opts MetricOpts) (new bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
-			slog.Error("Panic recovered during metric append", "err", r)
+			switch v := r.(type) {
+			case error:
+				err = v
+			default:
+				err = fmt.Errorf("%v", v)
+			}
+			slog.Error("Panic recovered during metric append", "err", err)
 			ErrorCounter.Inc()
 		}
 	}()
