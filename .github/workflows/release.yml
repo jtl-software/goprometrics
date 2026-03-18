@@ -21,6 +21,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: linux
           goarch: amd64
+          goversion: "1.26"
           ldflags: "-X 'main.Version=v${{github.ref_name}}'"
 
   push_to_registry:
