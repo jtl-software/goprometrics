@@ -253,7 +253,7 @@ func Test_counterStore_Inc_noop_when_not_appended(t *testing.T) {
 	// Must not panic; store map stays empty.
 	s.Inc(opts, 1.0)
 	if len(s.store) != 0 {
-		t.Errorf("Inc() on unapprended metric should not mutate the store")
+		t.Errorf("Inc() on unappended metric should not mutate the store")
 	}
 }
 
@@ -262,7 +262,7 @@ func Test_histogramStore_Inc_noop_when_not_appended(t *testing.T) {
 	opts := MetricOpts{Name: "Test_histogramStore_Inc_noop"}
 	s.Inc(opts, 1.0)
 	if len(s.store) != 0 {
-		t.Errorf("Inc() on unapprended metric should not mutate the store")
+		t.Errorf("Inc() on unappended metric should not mutate the store")
 	}
 }
 
@@ -271,7 +271,7 @@ func Test_summaryStore_Inc_noop_when_not_appended(t *testing.T) {
 	opts := MetricOpts{Name: "Test_summaryStore_Inc_noop"}
 	s.Inc(opts, 1.0)
 	if len(s.store) != 0 {
-		t.Errorf("Inc() on unapprended metric should not mutate the store")
+		t.Errorf("Inc() on unappended metric should not mutate the store")
 	}
 }
 
