@@ -265,4 +265,4 @@ docker-compose up -d
 #   9090  — Prometheus UI
 ```
 
-The `Dockerfile` uses a multi-stage build: `golang:1.26-alpine` builder stage, `alpine:3.21` final image.
+The `Dockerfile` uses a multi-stage build: `golang:1.26-alpine` builder stage, `alpine:3.23` final image.
