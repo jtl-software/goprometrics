@@ -1,9 +1,10 @@
 package store
 
 import (
+	"log/slog"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/common/log"
 )
 
 type (
@@ -50,7 +51,7 @@ func NewGaugeStore() Store {
 	}
 }
 
-//Counter
+// Counter
 func (s counterStore) Has(opts MetricOpts) bool {
 	_, has := s.store[opts.Key()]
 	return has
@@ -65,7 +66,7 @@ func (s counterStore) Append(opts MetricOpts) {
 		},
 		opts.Label.Name,
 	)
-	log.Infof("A new counter %s_%s with labels %v registered", opts.Ns, opts.Name, opts.Label.Name)
+	slog.Info("New counter registered", "ns", opts.Ns, "name", opts.Name, "labels", opts.Label.Name)
 }
 
 func (s counterStore) Inc(opts MetricOpts, value float64) {
@@ -74,7 +75,7 @@ func (s counterStore) Inc(opts MetricOpts, value float64) {
 	}
 }
 
-//Summary
+// Summary
 func (s summaryStore) Has(opts MetricOpts) bool {
 	_, has := s.store[opts.Key()]
 	return has
@@ -90,7 +91,7 @@ func (s summaryStore) Append(opts MetricOpts) {
 		},
 		opts.Label.Name,
 	)
-	log.Infof("A new summary %s_%s with labels %v and objectives %v registered", opts.Ns, opts.Name, opts.Label.Name, opts.SummaryObjectives)
+	slog.Info("New summary registered", "ns", opts.Ns, "name", opts.Name, "labels", opts.Label.Name, "objectives", opts.SummaryObjectives)
 }
 
 func (s summaryStore) Inc(opts MetricOpts, value float64) {
@@ -115,7 +116,7 @@ func (s histogramStore) Append(opts MetricOpts) {
 		},
 		opts.Label.Name,
 	)
-	log.Infof("A new histogram %s_%s with labels %v and buckets %v registered", opts.Ns, opts.Name, opts.Label.Name, opts.HistogramBuckets)
+	slog.Info("New histogram registered", "ns", opts.Ns, "name", opts.Name, "labels", opts.Label.Name, "buckets", opts.HistogramBuckets)
 }
 
 func (s histogramStore) Inc(opts MetricOpts, value float64) {
@@ -134,7 +135,7 @@ func (g gaugeStore) Append(opts MetricOpts) {
 		},
 		opts.Label.Name,
 	)
-	log.Infof("A new gauge %s_%s with labels %v registered", opts.Ns, opts.Name, opts.Label.Name)
+	slog.Info("New gauge registered", "ns", opts.Ns, "name", opts.Name, "labels", opts.Label.Name)
 }
 
 func (g gaugeStore) Inc(opts MetricOpts, value float64) {
