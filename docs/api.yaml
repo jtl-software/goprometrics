@@ -3,10 +3,10 @@ info:
   title: Goprometric metrics cache API
   version: 1.0.0
 servers:
-  - url: 'api://127.0.0.1:9111'
+  - url: 'http://127.0.0.1:9111'
 paths:
 
-  /count/{ns}/{name}/:
+  /count/{ns}/{name}:
     put:
       operationId: IncCounter
       summary: Increment a counter
@@ -26,6 +26,13 @@ paths:
           example: my_counter
           schema:
             type: string
+        - in: query
+          name: add
+          required: false
+          description: Step width to add (defaults to 1.0; values <= 0 are ignored and default to 1.0)
+          example: 1.4
+          schema:
+            type: number
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -36,8 +43,10 @@ paths:
           description: Counter was incremented
         '201':
           description: Counter was created and incremented
+        '400':
+          description: Failed to handle metric request
 
-  /sum/{ns}/{name}/{observation}:
+  /sum/{ns}/{name}/{value}:
     put:
       operationId: Summary
       summary: Observe a Summary metric
@@ -54,17 +63,17 @@ paths:
         - in: path
           name: name
           required: true
-          description: Counter name
-          example: my_counter
+          description: Summary name
+          example: my_summary
           schema:
             type: string
         - in: path
-          name: observation
+          name: value
           required: true
           description: Value to observe
           example: 0.435
           schema:
-            type: float
+            type: number
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -72,15 +81,15 @@ paths:
               $ref: '#/components/schemas/SummaryRequest'
       responses:
         '200':
-          description: Counter was incremented
+          description: Summary was observed
         '201':
-          description: Counter was created and incremented
+          description: Summary was created and observed
         '400':
-          description: Fail to handle metric request
+          description: Failed to handle metric request
 
-  /observe/{ns}/{name}/{observation}:
+  /observe/{ns}/{name}/{value}:
     put:
-      operationId: Historgram
+      operationId: Histogram
       summary: Observe a Histogram metric
       description: |
         Observe a metric using a histogram
@@ -95,17 +104,17 @@ paths:
         - in: path
           name: name
           required: true
-          description: Counter name
-          example: my_counter
+          description: Histogram name
+          example: my_histogram
           schema:
             type: string
         - in: path
-          name: observation
+          name: value
           required: true
           description: Value to observe
           example: 0.435
           schema:
-            type: float
+            type: number
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -113,18 +122,18 @@ paths:
               $ref: '#/components/schemas/HistogramRequest'
       responses:
         '200':
-          description: Counter was incremented
+          description: Histogram was observed
         '201':
-          description: Counter was created and incremented
+          description: Histogram was created and observed
         '400':
-          description: Fail to handle metric request
+          description: Failed to handle metric request
 
   /gauge/{ns}/{name}/{value}:
     put:
       operationId: Gauge
-      summary: Increase or decreate a gauge metric
+      summary: Increase or decrease a gauge metric
       description: |
-        Increase or decreate a gauge metric
+        Increase or decrease a gauge metric
       parameters:
         - in: path
           name: ns
@@ -143,10 +152,10 @@ paths:
         - in: path
           name: value
           required: true
-          description: Value to gauge
+          description: Value to add (or set, if useSet=1 is provided in the request body)
           example: -0.435
           schema:
-            type: float
+            type: number
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -154,11 +163,11 @@ paths:
               $ref: '#/components/schemas/GaugeRequest'
       responses:
         '200':
-          description: Counter was incremented
+          description: Gauge was updated
         '201':
-          description: Counter was created and incremented
+          description: Gauge was created and updated
         '400':
-          description: Fail to handle metric request
+          description: Failed to handle metric request
 
 components:
 
@@ -173,9 +182,6 @@ components:
         help:
           type: string
           example: "Describe metric a bit better"
-        step:
-          type: float
-          example: 1.4
 
     SummaryRequest:
       type: object
@@ -201,7 +207,7 @@ components:
           example: "Describe metric a bit better"
         buckets:
           type: string
-          example: "0.5,1.0,2.0.4.0"
+          example: "0.5,1.0,2.0,4.0"
 
     GaugeRequest:
       type: object
@@ -212,4 +218,7 @@ components:
         help:
           type: string
           example: "Describe metric a bit better"
-
+        useSet:
+          type: string
+          description: "Set to '1' to use Set() instead of Add() — replaces the current gauge value"
+          example: "1"

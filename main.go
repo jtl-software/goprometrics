@@ -1,7 +1,9 @@
 package main
 
 import (
-	"github.com/prometheus/common/log"
+	"log/slog"
+	"os"
+
 	"goprometrics/src/api"
 	"goprometrics/src/store"
 )
@@ -9,6 +11,7 @@ import (
 var Version = "development"
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
 
 	config := api.NewConfig()
 
@@ -17,7 +20,7 @@ func main() {
 		metrics.ServeMetrics()
 	}()
 
-	log.Info("GoPrometrics ", Version)
+	slog.Info("GoProMetrics started", "version", Version)
 	adapter := api.NewAdapter(config.ApiHostConfig)
 
 	adapter.CounterHandleFunc(adapter.RequestHandler(store.NewCounterStore()))

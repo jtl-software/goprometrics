@@ -1,10 +1,12 @@
 package store
 
 import (
+	"fmt"
+	"log/slog"
+	"sync"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/common/log"
-	"sync"
 )
 
 var mutex sync.Mutex
@@ -26,8 +28,13 @@ var (
 func Append(s Store, opts MetricOpts) (new bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
-			log.Error(r)
+			switch v := r.(type) {
+			case error:
+				err = v
+			default:
+				err = fmt.Errorf("%v", v)
+			}
+			slog.Error("Panic recovered during metric append", "err", err)
 			ErrorCounter.Inc()
 		}
 	}()

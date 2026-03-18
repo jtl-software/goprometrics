@@ -1,11 +1,15 @@
 package api
 
 import (
-	"goprometrics/src/store"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
+
+	"goprometrics/src/store"
 )
 
 func Test_createPrometheusMetricOpts(t *testing.T) {
@@ -218,5 +222,161 @@ func Test_parseStepWidth(t *testing.T) {
 				t.Errorf("parseStepWidth() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Additional cases for Test_createPrometheusMetricOpts
+// ---------------------------------------------------------------------------
+
+func Test_createPrometheusMetricOpts_non_numeric_value_returns_error(t *testing.T) {
+	req, _ := http.NewRequest("PUT", "/observe/ns/name/notanumber", strings.NewReader(""))
+	_, _, err := createPrometheusMetricOpts(req, map[string]string{"ns": "ns", "name": "name", "value": "notanumber"})
+	if err == nil {
+		t.Errorf("expected error for non-numeric path value, got nil")
+	}
+}
+
+func Test_createPrometheusMetricOpts_useSet_sets_flag(t *testing.T) {
+	req, _ := http.NewRequest("PUT", "/gauge/ns/name/5", strings.NewReader("useSet=1"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	opts, _, err := createPrometheusMetricOpts(req, map[string]string{"ns": "ns", "name": "name", "value": "5"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !opts.SetGaugeToValue {
+		t.Errorf("SetGaugeToValue should be true when useSet=1 is in the form body")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Test_createLabels
+// ---------------------------------------------------------------------------
+
+func Test_createLabels(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  store.ConstLabel
+	}{
+		{
+			name:  "empty input returns empty label",
+			input: "",
+			want:  store.ConstLabel{},
+		},
+		{
+			name:  "single label parsed correctly",
+			input: "env:prod",
+			want:  store.ConstLabel{Name: []string{"env"}, Value: []string{"prod"}},
+		},
+		{
+			name:  "multiple labels are sorted by name",
+			input: "status:200,path:/login",
+			want: store.ConstLabel{
+				Name:  []string{"path", "status"},
+				Value: []string{"/login", "200"},
+			},
+		},
+		{
+			name:  "colon in value is preserved",
+			input: "url:http://example.com",
+			want: store.ConstLabel{
+				Name:  []string{"url"},
+				Value: []string{"http://example.com"},
+			},
+		},
+		{
+			name:  "entries without colon are skipped",
+			input: "valid:yes,nocolon,also:ok",
+			want: store.ConstLabel{
+				Name:  []string{"also", "valid"},
+				Value: []string{"ok", "yes"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := createLabels(tt.input)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("createLabels(%q) = %+v, want %+v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Test_handleResponse
+// ---------------------------------------------------------------------------
+
+func Test_handleResponse(t *testing.T) {
+	tests := []struct {
+		name     string
+		created  bool
+		wantCode int
+	}{
+		{name: "created=true writes 201", created: true, wantCode: http.StatusCreated},
+		{name: "created=false writes 200", created: false, wantCode: http.StatusOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			handleResponse(tt.created, rec)
+			if rec.Code != tt.wantCode {
+				t.Errorf("handleResponse(%v) wrote status %d, want %d", tt.created, rec.Code, tt.wantCode)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Test_handleBadRequestError
+// ---------------------------------------------------------------------------
+
+func Test_handleBadRequestError(t *testing.T) {
+	rec := httptest.NewRecorder()
+	handleBadRequestError(fmt.Errorf("something went wrong"), rec)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("want status 400, got %d", rec.Code)
+	}
+
+	var body struct {
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("response body is not valid JSON: %v", err)
+	}
+	if body.Message != "something went wrong" {
+		t.Errorf("want message %q, got %q", "something went wrong", body.Message)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Additional cases for Test_parseStepWidth (<=0 guard)
+// ---------------------------------------------------------------------------
+
+func Test_parseStepWidth_zero_defaults_to_one(t *testing.T) {
+	req, _ := http.NewRequest("PUT", "foo.de/test?add=0", strings.NewReader(""))
+	if got := parseStepWidth(req); got != 1.0 {
+		t.Errorf("parseStepWidth with add=0: want 1.0, got %f", got)
+	}
+}
+
+func Test_parseStepWidth_negative_defaults_to_one(t *testing.T) {
+	req, _ := http.NewRequest("PUT", "foo.de/test?add=-5", strings.NewReader(""))
+	if got := parseStepWidth(req); got != 1.0 {
+		t.Errorf("parseStepWidth with add=-5: want 1.0, got %f", got)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Additional case for Test_parseObjectives (no-colon input — was a panic)
+// ---------------------------------------------------------------------------
+
+func Test_parseObjectives_no_colon_is_skipped(t *testing.T) {
+	// "0.5" alone has no colon — must return empty map, not panic.
+	got := parseObjectives("0.5")
+	if len(got) != 0 {
+		t.Errorf("parseObjectives with no-colon input should return empty map, got %v", got)
 	}
 }

@@ -2,18 +2,21 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/log"
-	"goprometrics/src/store"
+	"errors"
+	"log/slog"
 	"net/http"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"goprometrics/src/store"
 )
 
 var (
@@ -65,14 +68,14 @@ func (a adapter) GaugeHandleFunc(h func(writer http.ResponseWriter, request *htt
 }
 
 func (a adapter) Serve() {
-	log.Infof("Start Server on %s:%s", a.config.host, a.config.port)
+	slog.Info("Start Server", "host", a.config.host, "port", a.config.port)
 	a.listenAndServe()
 }
 
 func (a adapter) ServeMetrics() {
 	a.r.Path("/metrics").Handler(promhttp.Handler()).Methods("GET")
 
-	log.Infof("Start Metrics Server on %s:%s", a.config.host, a.config.port)
+	slog.Info("Start Metrics Server", "host", a.config.host, "port", a.config.port)
 	a.listenAndServe()
 }
 
@@ -82,8 +85,8 @@ func (a adapter) listenAndServe() {
 		Handler: a.r,
 	}
 	err := a.httpServer.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		slog.Error("Server error", "err", err)
 		os.Exit(1)
 	}
 }
@@ -164,6 +167,9 @@ func parseObjectives(s string) map[float64]float64 {
 
 	for _, value := range obj {
 		parts := strings.Split(value, ":")
+		if len(parts) < 2 {
+			continue
+		}
 
 		key, err := strconv.ParseFloat(parts[0], 64)
 		if err != nil {

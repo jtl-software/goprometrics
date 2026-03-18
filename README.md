@@ -6,8 +6,8 @@
 
 ![Test](https://github.com/jtl-software/goprometrics/workflows/Test/badge.svg?branch=master)
 
-The use case for GoProMetrics is to provide an aggregator and metrics cache for ephemeral processes. Such a scripting 
-languages like PHP. GoProMetrics is simple, lightweight, fast and provide easy to use API over HTTP.
+The use case for GoProMetrics is to provide an aggregator and metrics cache for ephemeral processes. Such as scripting 
+languages like PHP. GoProMetrics is simple, lightweight, fast and provides an easy to use API over HTTP.
 
 PHP Client: https://github.com/jtl-software/goprometrics-client
 
@@ -16,9 +16,9 @@ PHP Client: https://github.com/jtl-software/goprometrics-client
 * Support for Counter metrics
 * Support for Gauge metrics
 * Support for Histogram metrics
-* Support form Summary metrics
+* Support for Summary metrics
 * Each metric can be described using Namespace, Labels and Help Text
-* Provide `/metrics` endpoint for scrapping
+* Provide `/metrics` endpoint for scraping
 
 ## Install - Build it
 
@@ -57,7 +57,7 @@ docker run -it -p 9111:9111 -p 9112:9112 jtlsoftware/goprometrics
 docker-compose up -d
 ````
 
-Will start GoProMetrics listen in :9111 (api) and :9112 (for expose metrics). There is also a prometheus up and running on :9090.
+Will start GoProMetrics listening on :9111 (api) and :9112 (to expose metrics). There is also a prometheus up and running on :9090.
 
 Need some logs? `docker-compose logs -f goprometrics`
 
