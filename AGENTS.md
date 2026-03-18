@@ -195,10 +195,11 @@ Package-level `var` blocks in `http.go` and `manager.go` register Prometheus met
 ## Error Handling
 
 - **HTTP boundary errors:** Use `handleBadRequestError(err, w)` — marshals `{"message": "..."}` as JSON with HTTP 400.
-- **Unrecoverable startup errors:** `log.Fatal(err)` — logs and calls `os.Exit(1)`.
-- **Panic recovery:** `manager.go` uses `defer recover()` to catch panics from the Prometheus library
-  (re-registering a metric with conflicting options). The recovered value is cast to `error`, logged with
-  `log.Error(r)`, the `ErrorCounter` metric is incremented, and the error is returned to the caller.
+- **Unrecoverable startup errors:** Log with `slog.Error(...)` and then terminate explicitly with `os.Exit(1)`.
+- **Panic recovery:** `manager.go` uses a `defer` + `recover()` wrapper around calls into the Prometheus library
+  (e.g. when a metric is re-registered with conflicting options). The recovered value is converted to an `error`,
+  logged via `slog.Error(...)`, the `ErrorCounter` metric is incremented, and the resulting error is returned to
+  the caller.
 - **Silently ignored errors:** Several non-critical errors are explicitly discarded with `_`
   (e.g. response write errors, form parse errors, invalid bucket values). This is an established pattern here —
   when adding new code, only discard errors that are genuinely non-actionable; log or return others.
@@ -244,7 +245,6 @@ for _, tt := range tests {
 |---|---|
 | `github.com/gorilla/mux v1.7.4` | HTTP routing |
 | `github.com/prometheus/client_golang v1.5.1` | Prometheus metrics SDK |
-| `github.com/prometheus/common v0.9.1` | Prometheus logging (`log` package) |
 
 Use `go get` to add dependencies; keep `go.sum` committed.
 
