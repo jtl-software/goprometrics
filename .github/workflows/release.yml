@@ -16,12 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: wangyoucao577/go-release-action@v1.22
+      - uses: wangyoucao577/go-release-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: linux
           goarch: amd64
-          goversion: "1.26"
           ldflags: "-X 'main.Version=v${{github.ref_name}}'"
 
   push_to_registry:
