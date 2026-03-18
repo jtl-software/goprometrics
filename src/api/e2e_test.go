@@ -84,7 +84,7 @@ func Test_e2e_counter_with_labels(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Summary  PUT /sum/{ns}/{name}/{observation}
+// Summary  PUT /sum/{ns}/{name}/{value}
 // ---------------------------------------------------------------------------
 
 func Test_e2e_summary_creates_on_first_request(t *testing.T) {
